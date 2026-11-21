@@ -49,6 +49,8 @@ async function requestJson<T>(url: string, options: RequestInit = {}): Promise<T
 export const api = {
   getSystemStatus: () => requestJson<DbSystemInfo & { aiConfigured: boolean }>('/api/system/status'),
 
+  getAuthConfig: () => requestJson<{ demoMode: boolean; registrationOpen: boolean }>('/api/auth/config'),
+
   getClinicians: () => requestJson<{ clinicians: Clinician[] }>('/api/auth/clinicians'),
 
   startDemoSession: (clinicianId: string) =>
@@ -69,6 +71,7 @@ export const api = {
     password: string;
     specialty: SpecialtyRole;
     title: string;
+    registrationCode?: string;
   }) =>
     requestJson<{ token: string; clinician: Clinician }>('/api/auth/register', {
       method: 'POST',

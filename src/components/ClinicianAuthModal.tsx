@@ -10,6 +10,8 @@ interface ClinicianAuthModalProps {
   onClose: () => void;
   clinicians: Clinician[];
   activeClinician: Clinician | null;
+  demoMode: boolean;
+  registrationOpen: boolean;
   onAuthenticated: (clinician: Clinician, token: string) => void;
 }
 
@@ -27,6 +29,8 @@ export function ClinicianAuthModal({
   onClose,
   clinicians,
   activeClinician,
+  demoMode,
+  registrationOpen,
   onAuthenticated,
 }: ClinicianAuthModalProps) {
   const { pushToast } = useToast();
@@ -36,6 +40,7 @@ export function ClinicianAuthModal({
   const [fullName, setFullName] = useState('');
   const [specialty, setSpecialty] = useState<SpecialtyRole>('Medical Oncology');
   const [title, setTitle] = useState('Attending Oncologist');
+  const [registrationCode, setRegistrationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,7 +90,7 @@ export function ClinicianAuthModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await api.register({ fullName, email, password, specialty, title });
+      const res = await api.register({ fullName, email, password, specialty, title, registrationCode });
       setAuthToken(res.token);
       onAuthenticated(res.clinician, res.token);
       pushToast({
@@ -100,6 +105,15 @@ export function ClinicianAuthModal({
       setLoading(false);
     }
   };
+
+  const tabs = (
+    [
+      ['switch', 'Switch MDT Specialist'],
+      ['login', 'Password Sign-In'],
+      ['register', 'Register Clinician'],
+    ] as const
+  ).filter(([id]) => (id === 'switch' ? demoMode : id === 'register' ? registrationOpen : true));
+  const view = tabs.some(([id]) => id === mode) ? mode : 'login';
 
   return (
     <SpringModal open={open} onClose={onClose} labelledBy="auth-modal-title" maxWidthClass="max-w-lg">
@@ -128,12 +142,8 @@ export function ClinicianAuthModal({
 
         <div className="p-5 space-y-4">
           <div className="flex items-center gap-1 p-1 rounded-md bg-slate-100 dark:bg-slate-900">
-            {[
-              ['switch', 'Switch MDT Specialist'],
-              ['login', 'Password Sign-In'],
-              ['register', 'Register Clinician'],
-            ].map(([id, label]) => {
-              const active = mode === id;
+            {tabs.map(([id, label]) => {
+              const active = view === id;
               return (
                 <button
                   key={id}
@@ -166,7 +176,7 @@ export function ClinicianAuthModal({
             </div>
           )}
 
-          {mode === 'switch' && (
+          {view === 'switch' && (
             <div className="space-y-2 max-h-72 overflow-y-auto">
               {clinicians.map((c) => {
                 const isCurrent = activeClinician?.id === c.id;
@@ -199,7 +209,7 @@ export function ClinicianAuthModal({
             </div>
           )}
 
-          {mode === 'login' && (
+          {view === 'login' && (
             <form onSubmit={handleLogin} className="space-y-3">
               <div>
                 <label htmlFor="login-email" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -211,7 +221,7 @@ export function ClinicianAuthModal({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.rostova@oncoboard.org"
+                  placeholder="name@hospital.org"
                   className="w-full px-3 py-2 rounded-md text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-ink"
                 />
               </div>
@@ -238,7 +248,7 @@ export function ClinicianAuthModal({
             </form>
           )}
 
-          {mode === 'register' && (
+          {view === 'register' && (
             <form onSubmit={handleRegister} className="space-y-3">
               <div>
                 <label htmlFor="reg-name" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -312,6 +322,23 @@ export function ClinicianAuthModal({
                   className="w-full px-3 py-2 rounded-md text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-ink"
                 />
               </div>
+              {!demoMode && (
+                <div>
+                  <label htmlFor="reg-code" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Registration Code *
+                  </label>
+                  <input
+                    id="reg-code"
+                    type="password"
+                    required
+                    autoComplete="off"
+                    value={registrationCode}
+                    onChange={(e) => setRegistrationCode(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md text-xs font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-ink"
+                  />
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Your MDT administrator issues this code.</p>
+                </div>
+              )}
               <button
                 type="submit"
                 disabled={loading}

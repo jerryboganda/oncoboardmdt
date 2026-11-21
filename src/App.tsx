@@ -31,6 +31,7 @@ function OncoBoardShell() {
   const [clinicians, setClinicians] = useState<Clinician[]>([]);
   const [activeClinician, setActiveClinician] = useState<Clinician | null>(null);
   const [tokenVersion, setTokenVersion] = useState<string | null>(null);
+  const [authConfig, setAuthConfig] = useState({ demoMode: false, registrationOpen: false });
 
   const [loading, setLoading] = useState(true);
   const [bootError, setBootError] = useState<string | null>(null);
@@ -56,26 +57,38 @@ function OncoBoardShell() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Bootstrap initial clinical workspace & server-verified clinician session
+  // Every read needs a session, so the workspace loads only after sign-in.
+  const loadWorkspace = useCallback(async () => {
+    const [cliniciansRes, casesRes, meetingsRes] = await Promise.all([
+      api.getClinicians(),
+      api.getCases(),
+      api.getMeetings(),
+    ]);
+    setClinicians(cliniciansRes.clinicians);
+    setCases(casesRes.cases);
+    setMeetings(meetingsRes.meetings);
+    const live = meetingsRes.meetings.find((m) => m.roomStatus === 'Live') ?? meetingsRes.meetings[0];
+    if (live) setActiveMeetingId(live.id);
+  }, []);
+
+  // Bootstrap: demo servers sign in automatically; production asks the clinician to sign in
   useEffect(() => {
     let mounted = true;
     const init = async () => {
       try {
-        const [sessionRes, cliniciansRes, casesRes, meetingsRes] = await Promise.all([
-          api.startDemoSession('clin-med-01'),
-          api.getClinicians(),
-          api.getCases(),
-          api.getMeetings(),
-        ]);
+        const config = await api.getAuthConfig();
+        if (!mounted) return;
+        setAuthConfig(config);
+        if (!config.demoMode) {
+          setAuthModalOpen(true);
+          return;
+        }
+        const sessionRes = await api.startDemoSession('clin-med-01');
         if (!mounted) return;
         setAuthToken(sessionRes.token);
         setActiveClinician(sessionRes.clinician);
         setTokenVersion(sessionRes.token);
-        setClinicians(cliniciansRes.clinicians);
-        setCases(casesRes.cases);
-        setMeetings(meetingsRes.meetings);
-        const live = meetingsRes.meetings.find((m) => m.roomStatus === 'Live') ?? meetingsRes.meetings[0];
-        if (live) setActiveMeetingId(live.id);
+        await loadWorkspace();
       } catch (err) {
         if (mounted) {
           setBootError(err instanceof Error ? err.message : 'Unable to connect to OncoBoard server.');
@@ -88,7 +101,7 @@ function OncoBoardShell() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [loadWorkspace]);
 
   const handleToggleTheme = useCallback(() => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -250,6 +263,20 @@ function OncoBoardShell() {
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-300">{bootError}</p>
             </div>
+          ) : !activeClinician && !loading ? (
+            <div className="py-12 px-6 text-center">
+              <p className="text-sm font-medium text-ink">Sign in to open the Case Registry</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Cases, meetings and votes are available to signed-in clinicians only.
+              </p>
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(true)}
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-700 hover:bg-blue-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 text-xs font-semibold transition-colors whitespace-nowrap disabled:opacity-50"
+              >
+                Sign In
+              </button>
+            </div>
           ) : (
             <PageTransition viewKey={pageViewKey}>
               {openCaseId ? (
@@ -320,10 +347,17 @@ function OncoBoardShell() {
         onClose={() => setAuthModalOpen(false)}
         clinicians={clinicians}
         activeClinician={activeClinician}
+        demoMode={authConfig.demoMode}
+        registrationOpen={authConfig.registrationOpen}
         onAuthenticated={(clinician, token) => {
+          const firstSignIn = !activeClinician;
           setActiveClinician(clinician);
           setTokenVersion(token);
-          if (!clinicians.some((c) => c.id === clinician.id)) {
+          if (firstSignIn) {
+            loadWorkspace().catch((err) =>
+              setBootError(err instanceof Error ? err.message : 'Unable to load the clinical workspace.'),
+            );
+          } else if (!clinicians.some((c) => c.id === clinician.id)) {
             setClinicians((prev) => [...prev, clinician]);
           }
         }}

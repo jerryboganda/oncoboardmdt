@@ -21,6 +21,7 @@ import {
   mapMeetingRow,
   mapMessageRow,
   mapVoteRow,
+  SEED_DEMO_PASSWORD,
 } from './server/db';
 import {
   analyzeDicomSliceSnapshot,
@@ -66,6 +67,17 @@ function mapBoardToPreset(board: OrganBoard): DicomPresetKey {
   }
 }
 
+// Demo mode (auto sign-in, clinician switching, seeded password) is on for local dev and
+// off in production unless DEMO_MODE=true is set in the hosting panel.
+const DEMO_MODE = process.env.DEMO_MODE === 'true' || process.env.NODE_ENV !== 'production';
+const REGISTRATION_CODE = process.env.REGISTRATION_CODE?.trim() ?? '';
+
+function codeMatches(given: string): boolean {
+  const a = Buffer.from(given);
+  const b = Buffer.from(REGISTRATION_CODE);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 async function logAudit(
   actor: { id: string; fullName: string; specialty: SpecialtyRole },
   action: string,
@@ -98,7 +110,7 @@ async function bootstrap(): Promise<void> {
   app.use(express.json({ limit: '10mb' }));
 
   // --- Health & Hostinger MySQL / SQLite System Status ---
-  app.get('/api/system/status', async (_req, res) => {
+  app.get('/api/system/status', requireAuth, async (_req, res) => {
     try {
       const info = await db.getSystemInfo();
       res.json({
@@ -111,7 +123,12 @@ async function bootstrap(): Promise<void> {
   });
 
   // --- Clinician Auth Routes ---
-  app.get('/api/auth/clinicians', async (_req, res) => {
+  // Public: tells the sign-in screen which options this server allows.
+  app.get('/api/auth/config', (_req, res) => {
+    res.json({ demoMode: DEMO_MODE, registrationOpen: DEMO_MODE || REGISTRATION_CODE.length > 0 });
+  });
+
+  app.get('/api/auth/clinicians', requireAuth, async (_req, res) => {
     try {
       const rows = await db.query('SELECT * FROM clinicians ORDER BY is_chair DESC, full_name ASC');
       res.json({ clinicians: rows.map(mapClinicianRow) });
@@ -126,6 +143,10 @@ async function bootstrap(): Promise<void> {
       const password = String(req.body?.password ?? '');
       if (!email || !password) {
         res.status(400).json({ error: 'Email and password are required.' });
+        return;
+      }
+      if (!DEMO_MODE && password === SEED_DEMO_PASSWORD) {
+        res.status(401).json({ error: 'The shared demo password is disabled on this server. Ask your administrator to reset your account.' });
         return;
       }
 
@@ -153,6 +174,16 @@ async function bootstrap(): Promise<void> {
       const password = String(req.body?.password ?? '');
       const specialty = String(req.body?.specialty ?? '') as SpecialtyRole;
       const title = String(req.body?.title ?? 'Attending Specialist').trim();
+      if (!DEMO_MODE) {
+        if (!REGISTRATION_CODE) {
+          res.status(403).json({ error: 'Registration is closed on this server. Ask your administrator for an account.' });
+          return;
+        }
+        if (!codeMatches(String(req.body?.registrationCode ?? ''))) {
+          res.status(403).json({ error: 'That registration code is not valid.' });
+          return;
+        }
+      }
 
       if (!fullName || !email || password.length < 8 || !VALID_ROLES.has(specialty)) {
         res.status(400).json({
@@ -199,6 +230,10 @@ async function bootstrap(): Promise<void> {
   });
 
   app.post('/api/auth/demo-session', async (req, res) => {
+    if (!DEMO_MODE) {
+      res.status(403).json({ error: 'Demo sessions are disabled on this server. Sign in with your clinician account.' });
+      return;
+    }
     try {
       const clinicianId = String(req.body?.clinicianId ?? 'clin-med-01').trim();
       const row = await db.queryOne<Record<string, unknown>>(
@@ -227,7 +262,7 @@ async function bootstrap(): Promise<void> {
   });
 
   // --- Patient Cases CRUD ---
-  app.get('/api/cases', async (_req, res) => {
+  app.get('/api/cases', requireAuth, async (_req, res) => {
     try {
       const rows = await db.query('SELECT * FROM patient_cases ORDER BY updated_at DESC');
       res.json({ cases: rows.map(mapCaseRow) });
@@ -236,7 +271,7 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  app.get('/api/cases/:id', async (req, res) => {
+  app.get('/api/cases/:id', requireAuth, async (req, res) => {
     try {
       const row = await db.queryOne<Record<string, unknown>>(
         'SELECT * FROM patient_cases WHERE id = ?',
@@ -456,7 +491,7 @@ async function bootstrap(): Promise<void> {
   });
 
   // --- Imaging RECIST Annotations ---
-  app.get('/api/cases/:id/annotations', async (req, res) => {
+  app.get('/api/cases/:id/annotations', requireAuth, async (req, res) => {
     try {
       const rows = await db.query(
         'SELECT * FROM imaging_annotations WHERE case_id = ? ORDER BY created_at DESC',
@@ -551,7 +586,7 @@ async function bootstrap(): Promise<void> {
   });
 
   // --- Tumour Board Meetings & Scheduler ---
-  app.get('/api/meetings', async (_req, res) => {
+  app.get('/api/meetings', requireAuth, async (_req, res) => {
     try {
       const rows = await db.query('SELECT * FROM mdt_meetings ORDER BY scheduled_start ASC');
       res.json({ meetings: rows.map(mapMeetingRow) });
@@ -654,7 +689,7 @@ async function bootstrap(): Promise<void> {
   });
 
   // --- Consensus Votes & Sign-Off ---
-  app.get('/api/cases/:id/votes', async (req, res) => {
+  app.get('/api/cases/:id/votes', requireAuth, async (req, res) => {
     try {
       const rows = await db.query(
         'SELECT * FROM consensus_votes WHERE case_id = ? ORDER BY created_at DESC',
@@ -809,7 +844,7 @@ async function bootstrap(): Promise<void> {
   });
 
   // --- Secure Case & Board Room Messaging ---
-  app.get('/api/messages', async (req, res) => {
+  app.get('/api/messages', requireAuth, async (req, res) => {
     try {
       const roomId = String(req.query.roomId ?? '').trim();
       if (!roomId) {
@@ -870,7 +905,7 @@ async function bootstrap(): Promise<void> {
   });
 
   // --- Audit Trail ---
-  app.get('/api/audit', async (_req, res) => {
+  app.get('/api/audit', requireAuth, async (_req, res) => {
     try {
       const rows = await db.query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 80');
       res.json({ logs: rows.map(mapAuditRow) });

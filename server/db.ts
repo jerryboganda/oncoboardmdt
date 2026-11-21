@@ -205,7 +205,7 @@ class UnifiedDatabase {
     if (existing && Number(existing.cnt) > 0) return;
 
     const now = '2026-11-20T09:00:00.000Z';
-    const defaultHash = hashPassword('OncoBoard#2026');
+    const defaultHash = hashPassword(SEED_DEMO_PASSWORD);
 
     const cliniciansSeed = [
       {
@@ -1203,6 +1203,9 @@ class UnifiedDatabase {
 }
 
 export const db = new UnifiedDatabase();
+
+// Shared by every seeded clinician and public in the repo, so the server refuses it outside demo mode.
+export const SEED_DEMO_PASSWORD = 'OncoBoard#2026';
 
 export function mapClinicianRow(row: Record<string, unknown>): Clinician {
   return {

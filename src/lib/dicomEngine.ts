@@ -158,6 +158,18 @@ export function renderSliceToRgba(
   return rgba;
 }
 
+// Patients appear only as MRN + initials, so an uploaded file's PatientName (Family^Given)
+// is reduced to initials before it reaches the tag table or the viewer HUD.
+export function deIdentifyPatientName(dicomName: string): string {
+  const parts = dicomName.split(/[\^\s]+/).filter(Boolean);
+  const ordered = parts.length > 1 ? [parts[1], parts[0]] : parts;
+  const initials = ordered
+    .map((p) => p.charAt(0).toUpperCase())
+    .filter((ch) => /\p{L}/u.test(ch))
+    .join('.');
+  return initials ? `${initials}. (De-Identified)` : 'De-Identified';
+}
+
 function parseFirstFloat(raw: string | undefined, fallback: number): number {
   if (!raw) return fallback;
   const first = raw.split('\\')[0]?.trim();
@@ -263,7 +275,7 @@ export function parseDicomPart10Buffer(
   const modalityRaw = (dataSet.string('x00080060') || 'CT').trim().toUpperCase();
   const modality: 'CT' | 'MR' | 'PT' =
     modalityRaw === 'MR' ? 'MR' : modalityRaw === 'PT' ? 'PT' : 'CT';
-  const patientName = (dataSet.string('x00100010') || 'ANONYMIZED^PATIENT').trim();
+  const patientName = deIdentifyPatientName(dataSet.string('x00100010') || '');
   const patientId = (dataSet.string('x00100020') || 'UPLOADED-DCM').trim();
   const studyDate = (dataSet.string('x00080020') || '20261118').trim();
   const studyDescription = (dataSet.string('x00081030') || `Uploaded DICOM (${fileName})`).trim();

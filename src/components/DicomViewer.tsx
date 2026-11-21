@@ -13,6 +13,7 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -34,10 +35,30 @@ import type {
   PatientCase,
   PresenterSyncState,
 } from '../types';
-import { CLINICAL_SPRING, SlidingHighlight } from './MotionPrimitives';
+import { CLINICAL_SPRING, SlidingHighlight, SpringModal } from './MotionPrimitives';
 import { useToast } from './ToastProvider';
 
 type ViewerTool = 'probe' | 'wl' | 'ruler';
+type ParsedDicom = ReturnType<typeof parseDicomPart10Buffer>;
+
+function buildUploadedVolume(parsed: ParsedDicom[], seriesId: string): DicomSeriesVolume {
+  const sorted = [...parsed].sort((a, b) => a.slice.instanceNumber - b.slice.instanceNumber);
+  const first = sorted[0];
+  return {
+    seriesId,
+    studyDescription: first.studyDescription,
+    seriesDescription: first.seriesDescription,
+    modality: first.modality,
+    patientName: first.patientName,
+    patientId: first.patientId,
+    studyDate: first.studyDate,
+    institution: first.institution,
+    isUploadedDicom: true,
+    defaultWindowCenter: first.slice.defaultWindowCenter,
+    defaultWindowWidth: first.slice.defaultWindowWidth,
+    slices: sorted.map((p) => p.slice),
+  };
+}
 
 interface DicomViewerProps {
   patientCase: PatientCase;
@@ -121,6 +142,10 @@ export function DicomViewer({
   const [savingAnnot, setSavingAnnot] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [storedCount, setStoredCount] = useState(0);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -129,6 +154,55 @@ export function DicomViewer({
   const mainCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const priorCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Load whatever imaging the server already holds for this case, so every clinician sees the same series.
+  // ponytail: all stored files form one series, so storing two different studies on one case would mix
+  // them; group by SeriesInstanceUID if that ever matters.
+  useEffect(() => {
+    let active = true;
+    setUploadedVolume(null);
+    setActiveSource('current');
+    setUploadStatus(null);
+    setUploadError(null);
+    setStoredCount(0);
+
+    const load = async () => {
+      try {
+        const { files } = await api.getDicomFiles(patientCase.id);
+        if (!active) return;
+        setStoredCount(files.length);
+        if (files.length === 0) return;
+        setUploadStatus(`Loading ${files.length} stored slice(s) from the server...`);
+        const parsed: ParsedDicom[] = new Array(files.length);
+        let next = 0;
+        const worker = async () => {
+          while (active && next < files.length) {
+            const i = next++;
+            const buffer = await api.downloadDicomFile(files[i].id);
+            parsed[i] = parseDicomPart10Buffer(buffer, files[i].filename, i + 1);
+          }
+        };
+        await Promise.all([worker(), worker(), worker(), worker()]);
+        if (!active) return;
+        const vol = buildUploadedVolume(parsed, `STORED-${patientCase.id}`);
+        setUploadedVolume(vol);
+        setActiveSource('uploaded');
+        setUploadStatus(
+          `Loaded ${vol.slices.length} stored slice(s) from the server — ${vol.modality} (${vol.seriesDescription}).`,
+        );
+      } catch (err) {
+        if (!active) return;
+        setUploadStatus(null);
+        setUploadError(
+          `Stored imaging could not be loaded: ${err instanceof Error ? err.message : 'unknown error'}`,
+        );
+      }
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [patientCase.id]);
 
   // Reset viewport when switching patient case or series source
   useEffect(() => {
@@ -331,48 +405,83 @@ export function DicomViewer({
 
   const handleDicomFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    // Copy first: the input is cleared right after this call returns.
+    const list = Array.from(files);
     setUploadError(null);
     setUploadStatus(null);
 
+    let vol: DicomSeriesVolume;
     try {
-      const parsedSlices: ReturnType<typeof parseDicomPart10Buffer>[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const buffer = await file.arrayBuffer();
-        const parsed = parseDicomPart10Buffer(buffer, file.name, i + 1);
-        parsedSlices.push(parsed);
+      const parsedSlices: ParsedDicom[] = [];
+      for (let i = 0; i < list.length; i++) {
+        const buffer = await list[i].arrayBuffer();
+        parsedSlices.push(parseDicomPart10Buffer(buffer, list[i].name, i + 1));
       }
+      vol = buildUploadedVolume(parsedSlices, `UPLOADED-${Date.now()}`);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Unable to parse uploaded DICOM files.');
+      return;
+    }
 
-      parsedSlices.sort((a, b) => a.slice.instanceNumber - b.slice.instanceNumber);
-      const first = parsedSlices[0];
-      const vol: DicomSeriesVolume = {
-        seriesId: `UPLOADED-${Date.now()}`,
-        studyDescription: first.studyDescription,
-        seriesDescription: first.seriesDescription,
-        modality: first.modality,
-        patientName: first.patientName,
-        patientId: first.patientId,
-        studyDate: first.studyDate,
-        institution: first.institution,
-        isUploadedDicom: true,
-        defaultWindowCenter: first.slice.defaultWindowCenter,
-        defaultWindowWidth: first.slice.defaultWindowWidth,
-        slices: parsedSlices.map((p) => p.slice),
-      };
+    const loadedMessage = `Loaded ${vol.slices.length} real DICOM slice(s) — ${vol.modality} (${vol.seriesDescription}).`;
+    setUploadedVolume(vol);
+    setActiveSource('uploaded');
+    setUploadStatus(loadedMessage);
+    pushToast({
+      title: `Loaded ${vol.slices.length} DICOM slice(s)`,
+      description: `${vol.modality} · ${vol.seriesDescription}`,
+      variant: 'success',
+      organBoard: patientCase.organBoard,
+    });
 
-      setUploadedVolume(vol);
-      setActiveSource('uploaded');
-      setUploadStatus(
-        `Loaded ${vol.slices.length} real DICOM slice(s) — ${vol.modality} (${vol.seriesDescription}).`,
-      );
+    // Keep a copy on the server so the series is still there after a reload and for the rest of the board.
+    let stored = 0;
+    try {
+      for (const file of list) {
+        setUploadStatus(`${loadedMessage} Storing on the server: ${stored} of ${list.length}...`);
+        await api.uploadDicomFile(patientCase.id, file, stored + 1, list.length);
+        stored += 1;
+      }
+      const { files: all } = await api.getDicomFiles(patientCase.id);
+      setStoredCount(all.length);
+      setUploadStatus(`${loadedMessage} Stored ${stored} file(s) on the server.`);
       pushToast({
-        title: `Loaded ${vol.slices.length} DICOM slice(s)`,
-        description: `${vol.modality} · ${vol.seriesDescription}`,
+        title: `Stored ${stored} DICOM file(s)`,
+        description: `Available to every clinician on ${patientCase.mrn}.`,
         variant: 'success',
         organBoard: patientCase.organBoard,
       });
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Unable to parse uploaded DICOM files.');
+      setUploadStatus(loadedMessage);
+      setUploadError(
+        `Viewing locally, but server storage stopped after ${stored} of ${list.length} file(s): ${
+          err instanceof Error ? err.message : 'unknown error'
+        }`,
+      );
+    }
+  };
+
+  const handleDeleteStored = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const { deleted } = await api.deleteDicomFiles(patientCase.id);
+      setUploadedVolume(null);
+      setActiveSource('current');
+      setStoredCount(0);
+      setUploadStatus(null);
+      setUploadError(null);
+      setDeleteOpen(false);
+      pushToast({
+        title: `Deleted ${deleted} stored DICOM file(s)`,
+        description: `${patientCase.mrn} is back on the preloaded series.`,
+        variant: 'info',
+        organBoard: patientCase.organBoard,
+      });
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Unable to delete the stored series.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -584,6 +693,19 @@ export function DicomViewer({
             <Upload className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Upload .DCM Files</span>
           </button>
+          {storedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteError(null);
+                setDeleteOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap"
+            >
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Delete Stored Series</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowTags((s) => !s)}
@@ -1030,6 +1152,62 @@ export function DicomViewer({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SpringModal
+        open={deleteOpen}
+        onClose={() => !deleting && setDeleteOpen(false)}
+        labelledBy="delete-dicom-title"
+        maxWidthClass="max-w-md"
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-hairline">
+          <div>
+            <h2 id="delete-dicom-title" className="font-display text-base font-semibold text-ink">
+              Delete Stored Series
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {patientCase.mrn} · cannot be undone
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDeleteOpen(false)}
+            disabled={deleting}
+            aria-label="Close delete dialog"
+            className="p-1.5 rounded text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {deleteError && (
+            <div role="alert" className="p-3 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300">
+              {deleteError}
+            </div>
+          )}
+          <p className="text-xs leading-relaxed text-ink-muted">
+            This permanently removes {storedCount} stored DICOM file(s) from the server for every clinician.
+            Saved measurements stay. Only the lead clinician or a board chair can delete stored imaging.
+          </p>
+          <div className="flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteStored}
+              disabled={deleting}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-700 hover:bg-blue-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 text-xs font-semibold transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              {deleting ? 'Deleting...' : 'Delete Stored Series'}
+            </button>
+          </div>
+        </div>
+      </SpringModal>
     </div>
   );
 }

@@ -127,3 +127,17 @@ CREATE TABLE IF NOT EXISTS sessions (
   INDEX idx_sessions_expires (expires_at),
   INDEX idx_sessions_clinician (clinician_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- DICOM files stored byte-for-byte (headers included). Hostinger MySQL max_allowed_packet must exceed the 10 MB per-file cap.
+CREATE TABLE IF NOT EXISTS dicom_files (
+  id VARCHAR(64) PRIMARY KEY,
+  case_id VARCHAR(64) NOT NULL,
+  filename VARCHAR(160) NOT NULL,
+  size_bytes INT NOT NULL,
+  sha256 VARCHAR(64) NOT NULL,
+  uploaded_by_id VARCHAR(64) NOT NULL,
+  uploaded_by_name VARCHAR(160) NOT NULL,
+  created_at VARCHAR(40) NOT NULL,
+  data LONGBLOB NOT NULL,
+  INDEX idx_dicom_case (case_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

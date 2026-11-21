@@ -23,6 +23,7 @@ import {
   mapAuditRow,
   mapCaseRow,
   mapClinicianRow,
+  mapDicomRow,
   mapMeetingRow,
   mapMessageRow,
   mapVoteRow,
@@ -804,6 +805,144 @@ async function bootstrap(): Promise<void> {
       res.json({ ok: true });
     } catch (err) {
       fail(res, err, 'Failed to delete annotation');
+    }
+  });
+
+  // --- DICOM file storage ---
+  // Files are stored byte-for-byte, headers included (owner decision: no tag stripping), so every
+  // route here needs a session and responses are never cached or sniffed.
+  const DICOM_MAX_FILE_BYTES = 10 * 1024 * 1024; // stays under common MySQL max_allowed_packet limits
+  const DICOM_MAX_CASE_BYTES = 256 * 1024 * 1024;
+  const DICOM_META_COLUMNS = 'id, case_id, filename, size_bytes, uploaded_by_name, created_at';
+
+  app.get('/api/cases/:id/dicom', requireAuth, async (req, res) => {
+    try {
+      const rows = await db.query(
+        `SELECT ${DICOM_META_COLUMNS} FROM dicom_files WHERE case_id = ? ORDER BY created_at ASC, id ASC`,
+        [req.params.id],
+      );
+      res.json({ files: rows.map(mapDicomRow) });
+    } catch (err) {
+      fail(res, err, 'Failed to list DICOM files');
+    }
+  });
+
+  // One file per request (the client sends a series sequentially); auth runs before the body is buffered.
+  app.post(
+    '/api/cases/:id/dicom',
+    requireAuth,
+    express.raw({ type: () => true, limit: DICOM_MAX_FILE_BYTES }),
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const caseId = req.params.id;
+        const body: unknown = req.body;
+        if (!Buffer.isBuffer(body) || body.length < 132 || body.toString('latin1', 128, 132) !== 'DICM') {
+          res.status(400).json({ error: 'The file is not a DICOM Part 10 (.dcm) file.' });
+          return;
+        }
+        if (!(await caseExists(caseId))) {
+          res.status(404).json({ error: 'Patient case not found or archived.' });
+          return;
+        }
+
+        const filename =
+          String(req.query.name ?? '').replace(/[^\w.\- ()]/g, '_').slice(0, 160) || 'slice.dcm';
+        const sha256 = crypto.createHash('sha256').update(body).digest('hex');
+
+        // Re-uploading the same file is a no-op, so a retried or repeated upload never doubles the series.
+        const duplicate = await db.queryOne<Record<string, unknown>>(
+          `SELECT ${DICOM_META_COLUMNS} FROM dicom_files WHERE case_id = ? AND sha256 = ?`,
+          [caseId, sha256],
+        );
+        if (duplicate) {
+          res.json({ file: mapDicomRow(duplicate), duplicate: true });
+          return;
+        }
+
+        const used = await db.queryOne<{ total: number }>(
+          'SELECT COALESCE(SUM(size_bytes), 0) AS total FROM dicom_files WHERE case_id = ?',
+          [caseId],
+        );
+        if (Number(used?.total ?? 0) + body.length > DICOM_MAX_CASE_BYTES) {
+          res.status(413).json({ error: 'This case has reached its 256 MB imaging storage limit.' });
+          return;
+        }
+
+        const id = `dcm-${crypto.randomUUID().slice(0, 12)}`;
+        const now = new Date().toISOString();
+        await db.execute(
+          `INSERT INTO dicom_files (
+            id, case_id, filename, size_bytes, sha256, uploaded_by_id, uploaded_by_name, created_at, data
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, caseId, filename, body.length, sha256, req.clinician!.id, req.clinician!.fullName, now, body],
+        );
+
+        // One audit line per upload batch (the client numbers its files), not one per slice.
+        if (!req.query.i || req.query.i === '1') {
+          const batch = Number(req.query.n) > 1 ? `${Number(req.query.n)} DICOM files` : 'a DICOM file';
+          await logAudit(req.clinician!, 'DICOM_UPLOADED', 'patient_case', caseId, `Began storing ${batch} for case ${caseId}.`);
+        }
+
+        const created = await db.queryOne<Record<string, unknown>>(
+          `SELECT ${DICOM_META_COLUMNS} FROM dicom_files WHERE id = ?`,
+          [id],
+        );
+        res.status(201).json({ file: mapDicomRow(created!) });
+      } catch (err) {
+        fail(res, err, 'Failed to store DICOM file');
+      }
+    },
+  );
+
+  app.get('/api/dicom/:id', requireAuth, async (req, res) => {
+    try {
+      const row = await db.queryOne<Record<string, unknown>>(
+        'SELECT filename, data FROM dicom_files WHERE id = ?',
+        [req.params.id],
+      );
+      if (!row) {
+        res.status(404).json({ error: 'DICOM file not found.' });
+        return;
+      }
+      res.setHeader('Content-Type', 'application/dicom');
+      res.setHeader('Content-Disposition', `attachment; filename="${String(row.filename).replace(/"/g, '')}"`);
+      res.send(row.data as Buffer);
+    } catch (err) {
+      fail(res, err, 'Failed to read DICOM file');
+    }
+  });
+
+  // Removes every stored file for the case. Archiving a case never touches its images.
+  app.delete('/api/cases/:id/dicom', requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const row = await db.queryOne<Record<string, unknown>>(
+        'SELECT * FROM patient_cases WHERE id = ?',
+        [req.params.id],
+      );
+      if (!row) {
+        res.status(404).json({ error: 'Patient case not found.' });
+        return;
+      }
+      const current = mapCaseRow(row);
+      if (!req.clinician!.isChair && current.leadClinicianId !== req.clinician!.id) {
+        res.status(403).json({ error: 'Only the lead clinician or a board chair can delete stored imaging.' });
+        return;
+      }
+      const count = await db.queryOne<{ total: number }>(
+        'SELECT COUNT(*) AS total FROM dicom_files WHERE case_id = ?',
+        [current.id],
+      );
+      await db.execute('DELETE FROM dicom_files WHERE case_id = ?', [current.id]);
+      await logAudit(
+        req.clinician!,
+        'DICOM_DELETED',
+        'patient_case',
+        current.id,
+        `Deleted ${Number(count?.total ?? 0)} stored DICOM file(s) from case ${current.mrn}.`,
+      );
+      res.json({ ok: true, deleted: Number(count?.total ?? 0) });
+    } catch (err) {
+      fail(res, err, 'Failed to delete DICOM files');
     }
   });
 

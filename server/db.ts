@@ -11,12 +11,13 @@ import type {
   ConsensusPlan,
   ConsensusVote,
   DbSystemInfo,
+  DicomFileMeta,
   ImagingAnnotation,
   MdtMeeting,
   PatientCase,
 } from '../src/types';
 
-type SqlParams = (string | number | null)[];
+type SqlParams = (string | number | null | Buffer)[];
 
 class UnifiedDatabase {
   public engine: 'mysql' | 'sqlite' = 'sqlite';
@@ -208,6 +209,19 @@ class UnifiedDatabase {
         created_at VARCHAR(40) NOT NULL,
         expires_at VARCHAR(40) NOT NULL
       )`,
+      // DICOM files live in the database (not on disk) so they survive Hostinger redeploys and ride along with backups.
+      `CREATE TABLE IF NOT EXISTS dicom_files (
+        id VARCHAR(64) PRIMARY KEY,
+        case_id VARCHAR(64) NOT NULL,
+        filename VARCHAR(160) NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        sha256 VARCHAR(64) NOT NULL,
+        uploaded_by_id VARCHAR(64) NOT NULL,
+        uploaded_by_name VARCHAR(160) NOT NULL,
+        created_at VARCHAR(40) NOT NULL,
+        data ${this.engine === 'mysql' ? 'LONGBLOB' : 'BLOB'} NOT NULL
+      )`,
+      'CREATE INDEX idx_dicom_case ON dicom_files (case_id)',
       'ALTER TABLE patient_cases ADD COLUMN archived_at VARCHAR(40) NULL',
       'ALTER TABLE mdt_meetings ADD COLUMN archived_at VARCHAR(40) NULL',
       'CREATE INDEX idx_annot_case ON imaging_annotations (case_id)',
@@ -1349,6 +1363,18 @@ export function mapMessageRow(row: Record<string, unknown>): CaseMessage {
     senderSpecialty: String(row.sender_specialty) as CaseMessage['senderSpecialty'],
     tag: String(row.tag) as CaseMessage['tag'],
     body: String(row.body),
+    createdAt: String(row.created_at),
+  };
+}
+
+// Metadata only: the file bytes are selected and streamed separately.
+export function mapDicomRow(row: Record<string, unknown>): DicomFileMeta {
+  return {
+    id: String(row.id),
+    caseId: String(row.case_id),
+    filename: String(row.filename),
+    sizeBytes: Number(row.size_bytes),
+    uploadedByName: String(row.uploaded_by_name),
     createdAt: String(row.created_at),
   };
 }

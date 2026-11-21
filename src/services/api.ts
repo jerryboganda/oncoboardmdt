@@ -10,6 +10,7 @@ import type {
   ConsensusActionItem,
   ConsensusVote,
   DbSystemInfo,
+  DicomFileMeta,
   ImagingAnnotation,
   MdtMeeting,
   MessageTag,
@@ -39,7 +40,7 @@ export function setSessionExpiredHandler(handler: (() => void) | null): void {
 // Sign-in style calls answer 401 for bad credentials, which is not an expired session.
 const CREDENTIAL_CALLS = /^\/api\/auth\/(login|register|demo-session|password)/;
 
-async function requestJson<T>(url: string, options: RequestInit = {}): Promise<T> {
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> | undefined),
@@ -49,11 +50,16 @@ async function requestJson<T>(url: string, options: RequestInit = {}): Promise<T
   }
 
   const res = await fetch(url, { ...options, headers });
-  const data = (await res.json().catch(() => ({}))) as { error?: string } & T;
   if (res.status === 401 && authToken && !CREDENTIAL_CALLS.test(url)) {
     authToken = null;
     onSessionExpired?.();
   }
+  return res;
+}
+
+async function requestJson<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const res = await authFetch(url, options);
+  const data = (await res.json().catch(() => ({}))) as { error?: string } & T;
   if (!res.ok) {
     throw new Error(data.error || `Request failed with status ${res.status}`);
   }
@@ -161,6 +167,34 @@ export const api = {
     requestJson<{ patientCase: PatientCase }>(`/api/cases/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
+    }),
+
+  getDicomFiles: (caseId: string) =>
+    requestJson<{ files: DicomFileMeta[] }>(`/api/cases/${encodeURIComponent(caseId)}/dicom`),
+
+  // One file per call; index/total only let the server write a single audit line per batch.
+  uploadDicomFile: async (caseId: string, file: File, index: number, total: number) => {
+    const res = await authFetch(
+      `/api/cases/${encodeURIComponent(caseId)}/dicom?name=${encodeURIComponent(file.name)}&i=${index}&n=${total}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/dicom' }, body: file },
+    );
+    const data = (await res.json().catch(() => ({}))) as { error?: string; file?: DicomFileMeta };
+    if (!res.ok) throw new Error(data.error || `Upload failed with status ${res.status}`);
+    return data.file as DicomFileMeta;
+  },
+
+  downloadDicomFile: async (fileId: string) => {
+    const res = await authFetch(`/api/dicom/${encodeURIComponent(fileId)}`);
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(data.error || `Download failed with status ${res.status}`);
+    }
+    return res.arrayBuffer();
+  },
+
+  deleteDicomFiles: (caseId: string) =>
+    requestJson<{ ok: boolean; deleted: number }>(`/api/cases/${encodeURIComponent(caseId)}/dicom`, {
+      method: 'DELETE',
     }),
 
   saveAnnotation: (

@@ -134,6 +134,15 @@ export interface PatientCase {
   updatedAt: string;
 }
 
+export interface DicomFileMeta {
+  id: string;
+  caseId: string;
+  filename: string;
+  sizeBytes: number;
+  uploadedByName: string;
+  createdAt: string;
+}
+
 export interface ImagingAnnotation {
   id: string;
   caseId: string;

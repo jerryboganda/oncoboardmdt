@@ -1076,11 +1076,29 @@ async function bootstrap(): Promise<void> {
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve(process.cwd(), 'dist');
-    app.use('/app', express.static(distPath));
+    // Browser caching keeps repeat visits off the Worker -> Hostinger path, whose CDN rate-limits bursts.
+    // Vite assets are content-hashed, so they can be cached for a year; site.css/site.js are not, so 5 minutes.
+    app.use(
+      '/app',
+      express.static(distPath, {
+        setHeaders: (res, filePath) => {
+          if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        },
+      }),
+    );
     app.get('/app/*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
-    app.use(express.static(sitePath, { extensions: ['html'] }));
+    app.use(
+      express.static(sitePath, {
+        extensions: ['html'],
+        setHeaders: (res, filePath) => {
+          if (/\.(css|js)$/.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=300');
+        },
+      }),
+    );
     app.use((_req, res) => {
       res.status(404).sendFile(path.join(sitePath, 'index.html'));
     });

@@ -141,6 +141,7 @@ export function ClinicianAuthModal({
         </div>
 
         <div className="p-5 space-y-4">
+          {tabs.length > 1 && (
           <div className="flex items-center gap-1 p-1 rounded-md bg-slate-100 dark:bg-slate-900">
             {tabs.map(([id, label]) => {
               const active = view === id;
@@ -169,6 +170,7 @@ export function ClinicianAuthModal({
               );
             })}
           </div>
+          )}
 
           {error && (
             <div role="alert" className="p-3 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300">

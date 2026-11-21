@@ -100,6 +100,22 @@ export const api = {
 
   logout: () => requestJson<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
 
+  resetClinicianPassword: (id: string) =>
+    requestJson<{ temporaryPassword: string }>(
+      `/api/auth/clinicians/${encodeURIComponent(id)}/reset-password`,
+      { method: 'POST' },
+    ),
+
+  deactivateClinician: (id: string) =>
+    requestJson<{ clinician: Clinician }>(`/api/auth/clinicians/${encodeURIComponent(id)}/deactivate`, {
+      method: 'POST',
+    }),
+
+  reactivateClinician: (id: string) =>
+    requestJson<{ clinician: Clinician }>(`/api/auth/clinicians/${encodeURIComponent(id)}/reactivate`, {
+      method: 'POST',
+    }),
+
   changePassword: (currentPassword: string, newPassword: string) =>
     requestJson<{ ok: boolean }>('/api/auth/password', {
       method: 'POST',
@@ -227,8 +243,15 @@ export const api = {
 
   getMeetings: () => requestJson<{ meetings: MdtMeeting[] }>('/api/meetings'),
 
+  getArchivedMeetings: () => requestJson<{ meetings: MdtMeeting[] }>('/api/meetings?archived=1'),
+
   archiveMeeting: (id: string) =>
     requestJson<{ meeting: MdtMeeting }>(`/api/meetings/${encodeURIComponent(id)}/archive`, {
+      method: 'POST',
+    }),
+
+  restoreMeeting: (id: string) =>
+    requestJson<{ meeting: MdtMeeting }>(`/api/meetings/${encodeURIComponent(id)}/restore`, {
       method: 'POST',
     }),
 

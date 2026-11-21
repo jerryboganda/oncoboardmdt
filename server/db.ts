@@ -222,6 +222,9 @@ class UnifiedDatabase {
         data ${this.engine === 'mysql' ? 'LONGBLOB' : 'BLOB'} NOT NULL
       )`,
       'CREATE INDEX idx_dicom_case ON dicom_files (case_id)',
+      'ALTER TABLE clinicians ADD COLUMN disabled_at VARCHAR(40) NULL',
+      'ALTER TABLE dicom_files ADD COLUMN series_uid VARCHAR(128) NULL',
+      'ALTER TABLE dicom_files ADD COLUMN series_label VARCHAR(160) NULL',
       'ALTER TABLE patient_cases ADD COLUMN archived_at VARCHAR(40) NULL',
       'ALTER TABLE mdt_meetings ADD COLUMN archived_at VARCHAR(40) NULL',
       'CREATE INDEX idx_annot_case ON imaging_annotations (case_id)',
@@ -1267,6 +1270,7 @@ export function mapClinicianRow(row: Record<string, unknown>): Clinician {
     title: String(row.title),
     institution: String(row.institution),
     isChair: Boolean(row.is_chair),
+    disabledAt: row.disabled_at ? String(row.disabled_at) : null,
     createdAt: String(row.created_at),
   };
 }
@@ -1374,6 +1378,8 @@ export function mapDicomRow(row: Record<string, unknown>): DicomFileMeta {
     caseId: String(row.case_id),
     filename: String(row.filename),
     sizeBytes: Number(row.size_bytes),
+    seriesUid: row.series_uid ? String(row.series_uid) : null,
+    seriesLabel: row.series_label ? String(row.series_label) : null,
     uploadedByName: String(row.uploaded_by_name),
     createdAt: String(row.created_at),
   };

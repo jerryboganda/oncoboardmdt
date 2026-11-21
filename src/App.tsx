@@ -29,6 +29,7 @@ function OncoBoardShell() {
   const [cases, setCases] = useState<PatientCase[]>([]);
   const [archivedCases, setArchivedCases] = useState<PatientCase[]>([]);
   const [meetings, setMeetings] = useState<MdtMeeting[]>([]);
+  const [archivedMeetings, setArchivedMeetings] = useState<MdtMeeting[]>([]);
   const [clinicians, setClinicians] = useState<Clinician[]>([]);
   const [activeClinician, setActiveClinician] = useState<Clinician | null>(null);
   const [tokenVersion, setTokenVersion] = useState<string | null>(null);
@@ -60,16 +61,18 @@ function OncoBoardShell() {
 
   // Every read needs a session, so the workspace loads only after sign-in.
   const loadWorkspace = useCallback(async () => {
-    const [cliniciansRes, casesRes, archivedRes, meetingsRes] = await Promise.all([
+    const [cliniciansRes, casesRes, archivedRes, meetingsRes, archivedMeetingsRes] = await Promise.all([
       api.getClinicians(),
       api.getCases(),
       api.getArchivedCases(),
       api.getMeetings(),
+      api.getArchivedMeetings(),
     ]);
     setClinicians(cliniciansRes.clinicians);
     setCases(casesRes.cases);
     setArchivedCases(archivedRes.cases);
     setMeetings(meetingsRes.meetings);
+    setArchivedMeetings(archivedMeetingsRes.meetings);
     const live = meetingsRes.meetings.find((m) => m.roomStatus === 'Live') ?? meetingsRes.meetings[0];
     if (live) setActiveMeetingId(live.id);
   }, []);
@@ -113,6 +116,7 @@ function OncoBoardShell() {
     setCases([]);
     setArchivedCases([]);
     setMeetings([]);
+    setArchivedMeetings([]);
     setClinicians([]);
     setOpenCaseId(null);
     setActiveMeetingId(null);
@@ -183,9 +187,17 @@ function OncoBoardShell() {
     setCases((prev) => [restored, ...prev]);
   };
 
-  const handleMeetingArchived = (meetingId: string) => {
-    setMeetings((prev) => prev.filter((m) => m.id !== meetingId));
-    setActiveMeetingId((prev) => (prev === meetingId ? null : prev));
+  const handleMeetingArchived = (archived: MdtMeeting) => {
+    setMeetings((prev) => prev.filter((m) => m.id !== archived.id));
+    setArchivedMeetings((prev) => [archived, ...prev]);
+    setActiveMeetingId((prev) => (prev === archived.id ? null : prev));
+  };
+
+  const handleMeetingRestored = (restored: MdtMeeting) => {
+    setArchivedMeetings((prev) => prev.filter((m) => m.id !== restored.id));
+    setMeetings((prev) =>
+      [...prev, restored].sort((a, b) => a.scheduledStart.localeCompare(b.scheduledStart)),
+    );
   };
 
   const handleMeetingCreated = (created: MdtMeeting) => {
@@ -365,13 +377,16 @@ function OncoBoardShell() {
                   cases={cases}
                   onMeetingCreated={handleMeetingCreated}
                   onMeetingUpdated={handleMeetingUpdated}
+                  archivedMeetings={archivedMeetings}
                   onMeetingArchived={handleMeetingArchived}
+                  onMeetingRestored={handleMeetingRestored}
                   onEnterLiveRoom={handleEnterLiveMeeting}
                 />
               ) : activeSection === 'live-board' && activeMeeting ? (
                 <LiveBoardRoom
                   meeting={activeMeeting}
                   cases={cases}
+                  clinician={activeClinician}
                   tokenVersion={tokenVersion}
                   onCaseUpdated={handleCaseUpdated}
                   onMeetingUpdated={handleMeetingUpdated}

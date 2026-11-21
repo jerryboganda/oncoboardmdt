@@ -46,7 +46,7 @@ export async function getSession(
   if (!token) return null;
   const row = await db.queryOne<Record<string, unknown>>(
     `SELECT c.* FROM sessions s JOIN clinicians c ON c.id = s.clinician_id
-     WHERE s.token_hash = ? AND s.expires_at > ?`,
+     WHERE s.token_hash = ? AND s.expires_at > ? AND c.disabled_at IS NULL`,
     [hashToken(token), new Date().toISOString()],
   );
   return row ? { token, clinician: mapClinicianRow(row) } : null;
@@ -61,6 +61,10 @@ export async function revokeOtherSessions(clinicianId: string, keepToken: string
     clinicianId,
     hashToken(keepToken),
   ]);
+}
+
+export async function revokeAllSessions(clinicianId: string): Promise<void> {
+  await db.execute('DELETE FROM sessions WHERE clinician_id = ?', [clinicianId]);
 }
 
 export async function purgeExpiredSessions(): Promise<void> {

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
+import dicomParser from 'dicom-parser';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import {
@@ -12,6 +13,7 @@ import {
   purgeExpiredSessions,
   recordFailure,
   requireAuth,
+  revokeAllSessions,
   revokeOtherSessions,
   revokeSession,
   verifyPassword,
@@ -225,6 +227,12 @@ async function bootstrap(): Promise<void> {
         return;
       }
 
+      // Checked after the password so a stranger cannot probe which accounts exist or are disabled.
+      if (row.disabled_at) {
+        res.status(403).json({ error: 'This account has been deactivated. Contact your MDT administrator.' });
+        return;
+      }
+
       clearFailures(lockKey);
       const clinician = mapClinicianRow(row);
       const session = await createSession(clinician);
@@ -323,7 +331,7 @@ async function bootstrap(): Promise<void> {
         'SELECT * FROM clinicians WHERE id = ?',
         [clinicianId],
       );
-      if (!row) {
+      if (!row || row.disabled_at) {
         res.status(404).json({ error: 'Requested clinician profile not found.' });
         return;
       }
@@ -391,6 +399,68 @@ async function bootstrap(): Promise<void> {
       fail(res, err, 'Password change failed');
     }
   });
+
+  // --- Clinician administration (board chairs only) ---
+  // Reset hands back a random one-time password; deactivation blocks sign-in and ends live sessions.
+  async function loadManagedClinician(
+    req: AuthenticatedRequest,
+    res: express.Response,
+  ): Promise<Record<string, unknown> | null> {
+    if (!req.clinician!.isChair) {
+      res.status(403).json({ error: 'Only a board chair can manage clinician accounts.' });
+      return null;
+    }
+    if (req.params.id === req.clinician!.id) {
+      res.status(400).json({ error: 'Manage your own account from the My Account tab.' });
+      return null;
+    }
+    const row = await db.queryOne<Record<string, unknown>>('SELECT * FROM clinicians WHERE id = ?', [req.params.id]);
+    if (!row) res.status(404).json({ error: 'Clinician not found.' });
+    return row;
+  }
+
+  app.post('/api/auth/clinicians/:id/reset-password', requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const target = await loadManagedClinician(req, res);
+      if (!target) return;
+      const temporaryPassword = crypto.randomBytes(12).toString('base64url');
+      await db.execute('UPDATE clinicians SET password_hash = ? WHERE id = ?', [
+        hashPassword(temporaryPassword),
+        String(target.id),
+      ]);
+      await revokeAllSessions(String(target.id));
+      clearFailures(`login:${String(target.email).toLowerCase()}`);
+      await logAudit(req.clinician!, 'PASSWORD_RESET', 'clinician', String(target.id), `Reset the password for ${String(target.full_name)}; their sessions were ended.`);
+      res.json({ temporaryPassword });
+    } catch (err) {
+      fail(res, err, 'Password reset failed');
+    }
+  });
+
+  for (const [verb, deactivate] of [['deactivate', true], ['reactivate', false]] as const) {
+    app.post(`/api/auth/clinicians/:id/${verb}`, requireAuth, async (req: AuthenticatedRequest, res) => {
+      try {
+        const target = await loadManagedClinician(req, res);
+        if (!target) return;
+        await db.execute('UPDATE clinicians SET disabled_at = ? WHERE id = ?', [
+          deactivate ? new Date().toISOString() : null,
+          String(target.id),
+        ]);
+        if (deactivate) await revokeAllSessions(String(target.id));
+        await logAudit(
+          req.clinician!,
+          deactivate ? 'CLINICIAN_DEACTIVATED' : 'CLINICIAN_REACTIVATED',
+          'clinician',
+          String(target.id),
+          `${deactivate ? 'Deactivated' : 'Reactivated'} the account of ${String(target.full_name)}.`,
+        );
+        const updated = await db.queryOne<Record<string, unknown>>('SELECT * FROM clinicians WHERE id = ?', [String(target.id)]);
+        res.json({ clinician: mapClinicianRow(updated!) });
+      } catch (err) {
+        fail(res, err, `Failed to ${verb} clinician`);
+      }
+    });
+  }
 
   // --- Patient Cases CRUD ---
   // Archived cases are hidden from the registry; ?archived=1 lists only those.
@@ -813,14 +883,40 @@ async function bootstrap(): Promise<void> {
   // route here needs a session and responses are never cached or sniffed.
   const DICOM_MAX_FILE_BYTES = 10 * 1024 * 1024; // stays under common MySQL max_allowed_packet limits
   const DICOM_MAX_CASE_BYTES = 256 * 1024 * 1024;
-  const DICOM_META_COLUMNS = 'id, case_id, filename, size_bytes, uploaded_by_name, created_at';
+  const DICOM_META_COLUMNS = 'id, case_id, filename, size_bytes, series_uid, series_label, uploaded_by_name, created_at';
 
-  app.get('/api/cases/:id/dicom', requireAuth, async (req, res) => {
+  // Series UID and a readable label come from the DICOM header, so the viewer can keep studies apart.
+  // Parsing stops at Rows (0028,0010); a file that will not parse is not DICOM and is rejected.
+  function readSeriesInfo(body: Buffer): { uid: string | null; label: string } | null {
+    try {
+      const ds = dicomParser.parseDicom(new Uint8Array(body.buffer, body.byteOffset, body.length), {
+        untilTag: 'x00280010',
+      });
+      const uid = ds.string('x0020000e')?.trim().slice(0, 128) || null;
+      const parts = [ds.string('x00080060')?.trim(), ds.string('x0008103e')?.trim()].filter(Boolean);
+      return { uid, label: (parts.join(' · ') || 'Unlabelled series').slice(0, 160) };
+    } catch {
+      return null;
+    }
+  }
+
+  // One audit line per clinician, case and 10 minutes, however many slices they open.
+  async function auditDicomView(clinician: NonNullable<AuthenticatedRequest['clinician']>, caseId: string): Promise<void> {
+    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const seen = await db.queryOne(
+      'SELECT id FROM audit_logs WHERE actor_id = ? AND action = ? AND resource_id = ? AND created_at > ?',
+      [clinician.id, 'DICOM_VIEWED', caseId, since],
+    );
+    if (!seen) await logAudit(clinician, 'DICOM_VIEWED', 'patient_case', caseId, `Opened stored imaging for case ${caseId}.`);
+  }
+
+  app.get('/api/cases/:id/dicom', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const rows = await db.query(
         `SELECT ${DICOM_META_COLUMNS} FROM dicom_files WHERE case_id = ? ORDER BY created_at ASC, id ASC`,
         [req.params.id],
       );
+      if (rows.length > 0) await auditDicomView(req.clinician!, req.params.id);
       res.json({ files: rows.map(mapDicomRow) });
     } catch (err) {
       fail(res, err, 'Failed to list DICOM files');
@@ -838,6 +934,11 @@ async function bootstrap(): Promise<void> {
         const body: unknown = req.body;
         if (!Buffer.isBuffer(body) || body.length < 132 || body.toString('latin1', 128, 132) !== 'DICM') {
           res.status(400).json({ error: 'The file is not a DICOM Part 10 (.dcm) file.' });
+          return;
+        }
+        const series = readSeriesInfo(body);
+        if (!series) {
+          res.status(400).json({ error: 'The file could not be read as DICOM.' });
           return;
         }
         if (!(await caseExists(caseId))) {
@@ -872,9 +973,13 @@ async function bootstrap(): Promise<void> {
         const now = new Date().toISOString();
         await db.execute(
           `INSERT INTO dicom_files (
-            id, case_id, filename, size_bytes, sha256, uploaded_by_id, uploaded_by_name, created_at, data
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, caseId, filename, body.length, sha256, req.clinician!.id, req.clinician!.fullName, now, body],
+            id, case_id, filename, size_bytes, sha256, uploaded_by_id, uploaded_by_name, created_at, data,
+            series_uid, series_label
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id, caseId, filename, body.length, sha256, req.clinician!.id, req.clinician!.fullName, now, body,
+            series.uid, series.label,
+          ],
         );
 
         // One audit line per upload batch (the client numbers its files), not one per slice.
@@ -894,16 +999,17 @@ async function bootstrap(): Promise<void> {
     },
   );
 
-  app.get('/api/dicom/:id', requireAuth, async (req, res) => {
+  app.get('/api/dicom/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const row = await db.queryOne<Record<string, unknown>>(
-        'SELECT filename, data FROM dicom_files WHERE id = ?',
+        'SELECT case_id, filename, data FROM dicom_files WHERE id = ?',
         [req.params.id],
       );
       if (!row) {
         res.status(404).json({ error: 'DICOM file not found.' });
         return;
       }
+      await auditDicomView(req.clinician!, String(row.case_id));
       res.setHeader('Content-Type', 'application/dicom');
       res.setHeader('Content-Disposition', `attachment; filename="${String(row.filename).replace(/"/g, '')}"`);
       res.send(row.data as Buffer);
@@ -1217,8 +1323,17 @@ async function bootstrap(): Promise<void> {
         });
         return;
       }
-      if (!(await caseExists(caseId))) {
+      const signable = await db.queryOne<{ lead_clinician_id: string }>(
+        'SELECT lead_clinician_id FROM patient_cases WHERE id = ? AND archived_at IS NULL',
+        [caseId],
+      );
+      if (!signable) {
         res.status(404).json({ error: 'Patient case not found or archived.' });
+        return;
+      }
+      // Sign-off locks the plan, so it stays with the board chair or the case's lead clinician (same rule as archive).
+      if (!req.clinician!.isChair && signable.lead_clinician_id !== req.clinician!.id) {
+        res.status(403).json({ error: "Only the board chair or the case's lead clinician can sign off a consensus." });
         return;
       }
 

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS clinicians (
   title VARCHAR(160) NOT NULL,
   institution VARCHAR(160) NOT NULL,
   is_chair TINYINT(1) NOT NULL DEFAULT 0,
+  disabled_at VARCHAR(40) NULL,
   created_at VARCHAR(40) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -137,6 +138,8 @@ CREATE TABLE IF NOT EXISTS dicom_files (
   sha256 VARCHAR(64) NOT NULL,
   uploaded_by_id VARCHAR(64) NOT NULL,
   uploaded_by_name VARCHAR(160) NOT NULL,
+  series_uid VARCHAR(128) NULL,
+  series_label VARCHAR(160) NULL,
   created_at VARCHAR(40) NOT NULL,
   data LONGBLOB NOT NULL,
   INDEX idx_dicom_case (case_id)

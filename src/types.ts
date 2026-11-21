@@ -27,6 +27,7 @@ export interface Clinician {
   title: string;
   institution: string;
   isChair: boolean;
+  disabledAt?: string | null;
   createdAt: string;
 }
 
@@ -139,6 +140,8 @@ export interface DicomFileMeta {
   caseId: string;
   filename: string;
   sizeBytes: number;
+  seriesUid: string | null;
+  seriesLabel: string | null;
   uploadedByName: string;
   createdAt: string;
 }

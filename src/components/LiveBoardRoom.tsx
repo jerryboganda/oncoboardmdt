@@ -19,6 +19,7 @@ import {
 import { getOrganBoardTheme } from '../lib/organPalette';
 import { api } from '../services/api';
 import type {
+  Clinician,
   ConsensusActionItem,
   ConsensusVote,
   ImagingAnnotation,
@@ -34,6 +35,7 @@ import { useToast } from './ToastProvider';
 interface LiveBoardRoomProps {
   meeting: MdtMeeting;
   cases: PatientCase[];
+  clinician: Clinician | null;
   tokenVersion: string | null;
   onCaseUpdated: (updated: PatientCase) => void;
   onMeetingUpdated: (updated: MdtMeeting) => void;
@@ -72,6 +74,7 @@ const DEFAULT_PATHWAY_OPTIONS: Record<string, string[]> = {
 export function LiveBoardRoom({
   meeting,
   cases,
+  clinician,
   tokenVersion,
   onCaseUpdated,
   onMeetingUpdated,
@@ -173,6 +176,8 @@ export function LiveBoardRoom({
   );
 
   const quorum = useMemo(() => calculateConsensusQuorum(votes), [votes]);
+  // Mirrors the server rule; the server still enforces it.
+  const canSignOff = Boolean(clinician && (clinician.isChair || activeCase?.leadClinicianId === clinician.id));
 
   const handleSelectAgendaCase = async (caseId: string) => {
     setActiveCaseId(caseId);
@@ -797,11 +802,16 @@ export function LiveBoardRoom({
                 </div>
                 <button
                   type="submit"
-                  disabled={signing}
+                  disabled={signing || !canSignOff}
                   className="w-full py-2.5 px-4 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold disabled:opacity-50"
                 >
                   {signing ? 'Locking Consensus...' : 'Sign Off & Ratify MDT Consensus'}
                 </button>
+                {!canSignOff && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Only the board chair or the case&apos;s lead clinician can sign off the consensus.
+                  </p>
+                )}
               </form>
             </section>
           </div>

@@ -31,6 +31,7 @@ import { evaluateRecistResponse } from '../lib/clinicalRules';
 import { api } from '../services/api';
 import type {
   AiDicomImpressionResult,
+  DicomFileMeta,
   ImagingAnnotation,
   PatientCase,
   PresenterSyncState,
@@ -40,6 +41,20 @@ import { useToast } from './ToastProvider';
 
 type ViewerTool = 'probe' | 'wl' | 'ruler';
 type ParsedDicom = ReturnType<typeof parseDicomPart10Buffer>;
+
+const seriesKeyOf = (f: DicomFileMeta) => f.seriesUid ?? 'unknown';
+
+// Files that share a SeriesInstanceUID are one series; the viewer shows one series at a time.
+function groupBySeries(files: DicomFileMeta[]) {
+  const groups = new Map<string, { key: string; label: string; files: DicomFileMeta[] }>();
+  for (const f of files) {
+    const key = seriesKeyOf(f);
+    const group = groups.get(key) ?? { key, label: f.seriesLabel ?? 'Unlabelled series', files: [] };
+    group.files.push(f);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
+}
 
 function buildUploadedVolume(parsed: ParsedDicom[], seriesId: string): DicomSeriesVolume {
   const sorted = [...parsed].sort((a, b) => a.slice.instanceNumber - b.slice.instanceNumber);
@@ -142,7 +157,11 @@ export function DicomViewer({
   const [savingAnnot, setSavingAnnot] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [storedCount, setStoredCount] = useState(0);
+  const [storedFiles, setStoredFiles] = useState<DicomFileMeta[]>([]);
+  const [seriesKey, setSeriesKey] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const storedFilesRef = useRef<DicomFileMeta[]>([]);
+  const seriesGroups = useMemo(() => groupBySeries(storedFiles), [storedFiles]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -155,23 +174,49 @@ export function DicomViewer({
   const priorCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Load whatever imaging the server already holds for this case, so every clinician sees the same series.
-  // ponytail: all stored files form one series, so storing two different studies on one case would mix
-  // them; group by SeriesInstanceUID if that ever matters.
+  // Ask the server what imaging this case holds, then pick the biggest series to show first.
+  // Every clinician therefore sees the same stored series, and a reload keeps it.
   useEffect(() => {
     let active = true;
     setUploadedVolume(null);
     setActiveSource('current');
     setUploadStatus(null);
     setUploadError(null);
-    setStoredCount(0);
+    storedFilesRef.current = [];
+    setStoredFiles([]);
+    setSeriesKey(null);
+
+    api
+      .getDicomFiles(patientCase.id)
+      .then(({ files }) => {
+        if (!active || files.length === 0) return;
+        storedFilesRef.current = files;
+        setStoredFiles(files);
+        const biggest = groupBySeries(files).reduce((best, g) => (g.files.length >= best.files.length ? g : best));
+        setSeriesKey(biggest.key);
+      })
+      .catch((err) => {
+        if (active) {
+          setUploadError(
+            `Stored imaging could not be loaded: ${err instanceof Error ? err.message : 'unknown error'}`,
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [patientCase.id]);
+
+  // Download and decode the selected series (again after an upload, so the view always matches what is stored).
+  useEffect(() => {
+    if (!seriesKey) return;
+    let active = true;
+    const files = storedFilesRef.current.filter((f) => seriesKeyOf(f) === seriesKey);
+    if (files.length === 0) return;
 
     const load = async () => {
       try {
-        const { files } = await api.getDicomFiles(patientCase.id);
-        if (!active) return;
-        setStoredCount(files.length);
-        if (files.length === 0) return;
+        setUploadError(null);
         setUploadStatus(`Loading ${files.length} stored slice(s) from the server...`);
         const parsed: ParsedDicom[] = new Array(files.length);
         let next = 0;
@@ -184,7 +229,7 @@ export function DicomViewer({
         };
         await Promise.all([worker(), worker(), worker(), worker()]);
         if (!active) return;
-        const vol = buildUploadedVolume(parsed, `STORED-${patientCase.id}`);
+        const vol = buildUploadedVolume(parsed, `STORED-${patientCase.id}-${seriesKey}`);
         setUploadedVolume(vol);
         setActiveSource('uploaded');
         setUploadStatus(
@@ -202,7 +247,7 @@ export function DicomViewer({
     return () => {
       active = false;
     };
-  }, [patientCase.id]);
+  }, [patientCase.id, seriesKey, reloadTick]);
 
   // Reset viewport when switching patient case or series source
   useEffect(() => {
@@ -442,8 +487,13 @@ export function DicomViewer({
         await api.uploadDicomFile(patientCase.id, file, stored + 1, list.length);
         stored += 1;
       }
+      const before = new Set(storedFilesRef.current.map((f) => f.id));
       const { files: all } = await api.getDicomFiles(patientCase.id);
-      setStoredCount(all.length);
+      const added = all.find((f) => !before.has(f.id));
+      storedFilesRef.current = all;
+      setStoredFiles(all);
+      if (added) setSeriesKey(seriesKeyOf(added));
+      setReloadTick((t) => t + 1);
       setUploadStatus(`${loadedMessage} Stored ${stored} file(s) on the server.`);
       pushToast({
         title: `Stored ${stored} DICOM file(s)`,
@@ -468,7 +518,9 @@ export function DicomViewer({
       const { deleted } = await api.deleteDicomFiles(patientCase.id);
       setUploadedVolume(null);
       setActiveSource('current');
-      setStoredCount(0);
+      storedFilesRef.current = [];
+      setStoredFiles([]);
+      setSeriesKey(null);
       setUploadStatus(null);
       setUploadError(null);
       setDeleteOpen(false);
@@ -693,7 +745,26 @@ export function DicomViewer({
             <Upload className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Upload .DCM Files</span>
           </button>
-          {storedCount > 0 && (
+          {seriesGroups.length > 1 && (
+            <>
+              <label htmlFor="stored-series" className="sr-only">
+                Stored series
+              </label>
+              <select
+                id="stored-series"
+                value={seriesKey ?? ''}
+                onChange={(e) => setSeriesKey(e.target.value)}
+                className="px-3 py-1.5 rounded-md text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+              >
+                {seriesGroups.map((g) => (
+                  <option key={g.key} value={g.key}>
+                    {g.label} ({g.files.length})
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+          {storedFiles.length > 0 && (
             <button
               type="button"
               onClick={() => {
@@ -1185,7 +1256,8 @@ export function DicomViewer({
             </div>
           )}
           <p className="text-xs leading-relaxed text-ink-muted">
-            This permanently removes {storedCount} stored DICOM file(s) from the server for every clinician.
+            This permanently removes {storedFiles.length} stored DICOM file(s)
+            {seriesGroups.length > 1 ? ` across ${seriesGroups.length} series` : ''} from the server for every clinician.
             Saved measurements stay. Only the lead clinician or a board chair can delete stored imaging.
           </p>
           <div className="flex items-center justify-end gap-2.5">

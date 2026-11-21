@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { LogOut, X } from 'lucide-react';
 import { api, setAuthToken } from '../services/api';
 import type { Clinician, SpecialtyRole } from '../types';
@@ -36,11 +36,14 @@ export function ClinicianAuthModal({
   onSignedOut,
 }: ClinicianAuthModalProps) {
   const { pushToast } = useToast();
-  const [mode, setMode] = useState<'switch' | 'login' | 'register' | 'account'>('switch');
+  const [mode, setMode] = useState<'switch' | 'login' | 'register' | 'account' | 'admin'>('switch');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [managed, setManaged] = useState<Clinician[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [tempPassword, setTempPassword] = useState<{ name: string; password: string } | null>(null);
   const [fullName, setFullName] = useState('');
   const [specialty, setSpecialty] = useState<SpecialtyRole>('Medical Oncology');
   const [title, setTitle] = useState('Attending Oncologist');
@@ -153,20 +156,86 @@ export function ClinicianAuthModal({
   };
 
   const canManageAccount = Boolean(activeClinician) && !demoMode;
+  const canAdminister = Boolean(activeClinician?.isChair);
   const tabs = (
     [
       ['account', 'My Account'],
       ['switch', 'Switch MDT Specialist'],
       ['login', 'Password Sign-In'],
       ['register', 'Register Clinician'],
+      ['admin', 'Clinicians'],
     ] as const
   ).filter(([id]) =>
-    id === 'account' ? canManageAccount : id === 'switch' ? demoMode : id === 'register' ? registrationOpen : true,
+    id === 'account'
+      ? canManageAccount
+      : id === 'switch'
+        ? demoMode
+        : id === 'register'
+          ? registrationOpen
+          : id === 'admin'
+            ? canAdminister
+            : true,
   );
   const view = tabs.some(([id]) => id === mode) ? mode : canManageAccount ? 'account' : 'login';
 
+  // Chairs see every account, including deactivated ones, so they can reactivate them.
+  useEffect(() => {
+    if (!open || view !== 'admin') return;
+    let active = true;
+    api
+      .getClinicians()
+      .then((res) => {
+        if (active) setManaged(res.clinicians);
+      })
+      .catch((err) => {
+        if (active) setError(err instanceof Error ? err.message : 'Unable to load clinicians.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, view]);
+
+  const handleResetPassword = async (c: Clinician) => {
+    setBusyId(c.id);
+    setError(null);
+    setTempPassword(null);
+    try {
+      const { temporaryPassword } = await api.resetClinicianPassword(c.id);
+      setTempPassword({ name: c.fullName, password: temporaryPassword });
+      pushToast({
+        title: `Password reset for ${c.fullName}`,
+        description: 'Their sessions were ended. Share the temporary password securely.',
+        variant: 'info',
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Password reset failed.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleToggleActive = async (c: Clinician) => {
+    setBusyId(c.id);
+    setError(null);
+    try {
+      const { clinician } = await (c.disabledAt ? api.reactivateClinician(c.id) : api.deactivateClinician(c.id));
+      setManaged((prev) => prev.map((x) => (x.id === clinician.id ? clinician : x)));
+      pushToast({
+        title: `${clinician.fullName} ${clinician.disabledAt ? 'deactivated' : 'reactivated'}`,
+        description: clinician.disabledAt
+          ? 'They can no longer sign in and their sessions were ended.'
+          : 'They can sign in again.',
+        variant: 'info',
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update this account.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
-    <SpringModal open={open} onClose={onClose} labelledBy="auth-modal-title" maxWidthClass="max-w-lg">
+    <SpringModal open={open} onClose={onClose} labelledBy="auth-modal-title" maxWidthClass="max-w-xl">
       <div className="overflow-hidden">
         <div className="px-5 py-4 border-b border-hairline flex items-center justify-between">
           <div>
@@ -192,7 +261,7 @@ export function ClinicianAuthModal({
 
         <div className="p-5 space-y-4">
           {tabs.length > 1 && (
-          <div className="flex items-center gap-1 p-1 rounded-md bg-slate-100 dark:bg-slate-900">
+          <div className="flex items-center gap-1 p-1 rounded-md bg-slate-100 dark:bg-slate-900 overflow-x-auto">
             {tabs.map(([id, label]) => {
               const active = view === id;
               return (
@@ -203,7 +272,7 @@ export function ClinicianAuthModal({
                     setMode(id);
                     setError(null);
                   }}
-                  className={`relative flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                  className={`relative flex-1 shrink-0 whitespace-nowrap py-1.5 px-3 rounded text-xs font-medium transition-colors ${
                     active
                       ? 'text-ink'
                       : 'text-ink-muted hover:text-slate-900 dark:hover:text-slate-200'
@@ -230,7 +299,9 @@ export function ClinicianAuthModal({
 
           {view === 'switch' && (
             <div className="space-y-2 max-h-72 overflow-y-auto">
-              {clinicians.map((c) => {
+              {clinicians
+                .filter((c) => !c.disabledAt)
+                .map((c) => {
                 const isCurrent = activeClinician?.id === c.id;
                 return (
                   <button
@@ -258,6 +329,55 @@ export function ClinicianAuthModal({
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {view === 'admin' && (
+            <div className="space-y-3">
+              {tempPassword && (
+                <div role="status" className="p-3 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+                  <p>
+                    Temporary password for {tempPassword.name}:{' '}
+                    <span className="font-mono font-semibold select-all">{tempPassword.password}</span>
+                  </p>
+                  <p>Shown once. Share it securely; they should change it after signing in.</p>
+                </div>
+              )}
+              <ul className="max-h-72 overflow-y-auto divide-y divide-hairline">
+                {managed.map((c) => (
+                  <li key={c.id} className="py-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-ink truncate">{c.fullName}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {c.specialty} · <span className="font-mono">{c.email}</span>
+                        {c.disabledAt && (
+                          <span className="text-rose-700 dark:text-rose-400 font-semibold"> · Deactivated</span>
+                        )}
+                      </p>
+                    </div>
+                    {c.id !== activeClinician?.id && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          disabled={busyId === c.id}
+                          onClick={() => handleResetPassword(c)}
+                          className="inline-flex items-center px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap disabled:opacity-50"
+                        >
+                          Reset Password
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyId === c.id}
+                          onClick={() => handleToggleActive(c)}
+                          className="inline-flex items-center px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap disabled:opacity-50"
+                        >
+                          {c.disabledAt ? 'Reactivate' : 'Deactivate'}
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

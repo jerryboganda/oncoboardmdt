@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { Archive, CalendarPlus, Clock, Radio, Users, X } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarPlus, Clock, Radio, Users, X } from 'lucide-react';
 import { getOrganBoardTheme } from '../lib/organPalette';
 import { api } from '../services/api';
 import type { MdtMeeting, OrganBoard, PatientCase } from '../types';
@@ -12,7 +12,9 @@ interface MeetingsViewProps {
   cases: PatientCase[];
   onMeetingCreated: (meeting: MdtMeeting) => void;
   onMeetingUpdated: (meeting: MdtMeeting) => void;
-  onMeetingArchived: (meetingId: string) => void;
+  archivedMeetings: MdtMeeting[];
+  onMeetingArchived: (meeting: MdtMeeting) => void;
+  onMeetingRestored: (meeting: MdtMeeting) => void;
   onEnterLiveRoom: (meetingId: string) => void;
 }
 
@@ -21,13 +23,17 @@ export function MeetingsView({
   cases,
   onMeetingCreated,
   onMeetingUpdated,
+  archivedMeetings,
   onMeetingArchived,
+  onMeetingRestored,
   onEnterLiveRoom,
 }: MeetingsViewProps) {
   const { pushToast } = useToast();
   const [archiveTarget, setArchiveTarget] = useState<MdtMeeting | null>(null);
   const [archiving, setArchiving] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [organBoard, setOrganBoard] = useState<OrganBoard | 'Multi-Organ'>('Multi-Organ');
   const [scheduledStart, setScheduledStart] = useState('2026-11-27T14:00');
@@ -81,7 +87,7 @@ export function MeetingsView({
     setArchiveError(null);
     try {
       const { meeting } = await api.archiveMeeting(archiveTarget.id);
-      onMeetingArchived(meeting.id);
+      onMeetingArchived(meeting);
       pushToast({
         title: 'Tumour Board archived',
         description: `${meeting.title} was removed from the schedule.`,
@@ -93,6 +99,25 @@ export function MeetingsView({
       setArchiveError(err instanceof Error ? err.message : 'Unable to archive this meeting.');
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const handleRestore = async (archived: MdtMeeting) => {
+    setRestoringId(archived.id);
+    setRestoreError(null);
+    try {
+      const { meeting } = await api.restoreMeeting(archived.id);
+      onMeetingRestored(meeting);
+      pushToast({
+        title: 'Tumour Board restored',
+        description: `${meeting.title} is back on the schedule.`,
+        variant: 'success',
+        organBoard: meeting.organBoard,
+      });
+    } catch (err) {
+      setRestoreError(err instanceof Error ? err.message : 'Unable to restore this meeting.');
+    } finally {
+      setRestoringId(null);
     }
   };
 
@@ -261,6 +286,57 @@ export function MeetingsView({
             );
           })}
         </div>
+
+        {archivedMeetings.length > 0 && (
+          <section
+            aria-label="Archived Tumour Board sessions"
+            className="rounded-lg bg-panel border border-hairline p-5 space-y-3"
+          >
+            <div>
+              <h3 className="font-display text-sm font-semibold text-ink">Archived Sessions</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Removed from the schedule. Restore a session to use it again.
+              </p>
+            </div>
+            {restoreError && (
+              <div role="alert" className="p-3 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300">
+                {restoreError}
+              </div>
+            )}
+            <ul className="divide-y divide-hairline">
+              {archivedMeetings.map((m) => {
+                const token = getOrganBoardTheme(m.organBoard);
+                return (
+                  <li key={m.id} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-ink truncate">{m.title}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                        <span className={`inline-flex items-center gap-1.5 font-medium ${token.textClass}`}>
+                          <span className={`h-2 w-2 rounded-xs ${token.swatchClass}`} aria-hidden="true" />
+                          {m.organBoard} Board
+                        </span>{' '}
+                        ·{' '}
+                        <span className="font-mono tabular-nums">
+                          {new Date(m.scheduledStart).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                        </span>
+                      </p>
+                    </div>
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.96 }}
+                      disabled={restoringId === m.id}
+                      onClick={() => handleRestore(m)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-blue-600 hover:text-blue-700 dark:hover:border-sky-400 dark:hover:text-sky-300 transition-colors whitespace-nowrap shrink-0 disabled:opacity-50"
+                    >
+                      <ArchiveRestore className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                      <span>{restoringId === m.id ? 'Restoring...' : 'Restore'}</span>
+                    </motion.button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
       </div>
 
       {/* Right: Schedule New Tumour Board Session Form */}

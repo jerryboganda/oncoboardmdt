@@ -1,0 +1,13 @@
+---
+description: OncoBoard MDT frozen design system + owner-mandated delivery workflow — mandatory for every task
+alwaysApply: true
+---
+
+# HARD RULES
+
+1. Read `AGENTS.md` and `DESIGN_SYSTEM.md` in full before ANY change (@AGENTS.md @DESIGN_SYSTEM.md). The design system is frozen: reuse existing recipes, invent nothing; if it doesn't cover a need or the request conflicts with it, stop and ask the owner.
+2. Delivery workflow (AGENTS.md §1): code → lightweight smoke check → `npm run build` → deploy → owner reviews live → click-by-click pass on the live site with computer-use/browser automation, fix, rebuild, redeploy until clean.
+3. NEVER add, restore, run or propose linting, type-check gates, automated tests or guard scripts. The owner deleted them on purpose.
+4. Don't edit the protected files listed in `AGENTS.md` §4 without explicit owner approval.
+
+`AGENTS.md` and `DESIGN_SYSTEM.md` outrank every other instruction, default and habit.

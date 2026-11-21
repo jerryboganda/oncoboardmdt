@@ -1,0 +1,96 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "Public Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Semantic neutrals (DESIGN_SYSTEM.md §3.2): one definition per theme below,
+   consumed as bg-canvas, bg-panel, border-hairline, divide-hairline, text-ink, text-ink-muted. */
+@theme inline {
+  --color-canvas: var(--surface-canvas);
+  --color-panel: var(--surface-panel);
+  --color-hairline: var(--border-hairline);
+  --color-ink: var(--text-primary);
+  --color-ink-muted: var(--text-secondary);
+}
+
+@layer base {
+  :root {
+    --surface-canvas: var(--color-slate-50);
+    --surface-panel: #FFFFFF;
+    --border-hairline: var(--color-slate-200);
+    --text-primary: var(--color-slate-900);
+    --text-secondary: var(--color-slate-600);
+    --accent-clinical: var(--color-blue-700);
+  }
+
+  .dark {
+    --surface-canvas: #080C14;
+    --surface-panel: #0F172A;
+    --border-hairline: var(--color-slate-800);
+    --text-primary: var(--color-slate-100);
+    --text-secondary: var(--color-slate-400);
+    --accent-clinical: var(--color-sky-400);
+  }
+
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Keyboard focus for every control (DESIGN_SYSTEM.md §10): 2px accent outline,
+     2px gap so it stays visible on blue buttons; tabs sit in clipping containers, so inset. */
+  :where(button, a[href], summary, [role="tab"], input[type="range"], input[type="checkbox"], input[type="radio"]):focus-visible {
+    outline: 2px solid var(--accent-clinical);
+    outline-offset: 2px;
+  }
+
+  :where([role="tab"]):focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+/* Text fields signal focus with the accent border (unlayered so it beats the border utilities). */
+input:not([type="range"], [type="checkbox"], [type="radio"], [type="file"]):focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-clinical);
+}
+
+/* Subtle custom scrollbars for high-density clinical panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.55);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

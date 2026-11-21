@@ -1,0 +1,6 @@
+{
+  "name": "OncoBoard MDT",
+  "description": "Multi-Disciplinary Team (Tumour Board) clinical coordination, diagnostic DICOM imaging, real-time collaborative meeting room, and AI-assisted oncology decision support platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

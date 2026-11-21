@@ -12,3 +12,4 @@ data/
 .aistudio/
 .claude/
 bun.lock
+server.js

@@ -27,7 +27,7 @@ Removing the automated checks does **not** relax the design system: compliance w
 
 ### 1.2 Deploy target
 - **Documented production path** (in-app Audit & Database checklist): Hostinger Business Plan Node.js Web App + MySQL — Build Command `npm run build`, Start Command `npm start`, `NODE_ENV=production`, env vars `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `GEMINI_API_KEY`.
-- **Live URL:** `https://mdt.polytronx.com`, served by the Cloudflare Worker `oncoboard-proxy` (custom domain `mdt` on the owner's `polytronx.com` zone), which forwards every request, WebSockets included, to the Hostinger app below. Never delete or change that Worker or its `mdt` record without the owner's approval.
+- **Live URL:** `https://mdt.polytronx.com` — marketing website (`site/`) at `/`, the clinical app at `/app/`, API at `/api`, WebSocket at `/ws` — served by the Cloudflare Worker `oncoboard-proxy` (custom domain `mdt` on the owner's `polytronx.com` zone), which forwards every request, WebSockets included, to the Hostinger app below. Never delete or change that Worker or its `mdt` record without the owner's approval.
 - **Host:** the owner's second Hostinger account (plan "Business Web Hosting"; it also hosts the owner's other live sites `psova.org.pk` and `amaddiagnosticcentre.com.pk` — never touch those). The Web App is `bouncy-midnightblue-goldfish-05.hostingersite.com` (Express, Node 22, npm, entry `server.js`, env `NODE_ENV=production` + `APP_URL`). The owner is signed in to hPanel, Cloudflare and GitHub in Chrome; use browser automation, never ask for or type passwords.
 - **Source:** GitHub `jerryboganda/oncoboardmdt` (public), branch `main`; the Hostinger GitHub app is installed for that repo only. Commit with the repo-local GitHub no-reply identity, never the owner's real email.
 - **How to deploy:** `git push origin main` (then check hPanel → the Web App → Deployments; redeploy from there if no deployment started). The ZIP upload route in hPanel fails ("Failed to prepare service") — do not use it. Build runs `npm install` (honours `.npmrc`) then `npm run build`, which also bundles `server.ts` into `server.js`.
@@ -62,6 +62,7 @@ Removing the automated checks does **not** relax the design system: compliance w
 - NEVER: Interactive elements without an accessible name, a label (inputs) or keyboard access. Colour as the only status signal. Keyboard focus is **global** (`index.css`): never add per-element focus styles, never use `outline-none` on a button, and register any new focusable element type in the `index.css` selector list.
 - NEVER: Marketing tone, exclamation marks, full patient names (de-identified MRN + initials only), AI output without its label + disclaimer.
 - NEVER: Editing the protected files below without explicit owner approval.
+- Scope note: this list governs the clinical app (`src/`, served at `/app`). The marketing website (`site/`, served at `/`) follows DESIGN_SYSTEM.md §16 instead.
 
 ## 4. Protected files (change only with owner approval; design files via the §13 protocol)
 
@@ -72,6 +73,8 @@ Removing the automated checks does **not** relax the design system: compliance w
 - **Stack:** React 19 · Vite · Tailwind CSS **v4** (CSS-first config in `src/index.css`; there is no `tailwind.config`) · `motion/react` · `lucide-react` · `recharts` · Express + `ws` server (`server.ts`, `server/`) · SQLite (local) / MySQL (production).
 - **Commands:** `npm run dev` (`tsx server.ts`, http://localhost:3000) · `npm run build` (`vite build`) · `npm start` (production server).
 - **Install/start (fixed):** `.npmrc` sets `legacy-peer-deps=true` (existing esbuild/vite peer conflict), `react-is` is a dependency (recharts peer), and `npm run build` also bundles `server.ts` into `server.js` with esbuild (plain `node server.ts` fails on extensionless imports) and `npm start` runs `node server.js`, so `esbuild` and `tailwindcss` live in `dependencies`. Hostinger's entry file is `server.js`. Production start was verified locally (`NODE_ENV=production`; site, API and SPA fallback respond).
+- **Routing:** Vite `base` is `/app/`; `server.ts` serves `site/` at `/` and the built app from `dist/` at `/app` (SPA fallback under `/app/*`).
+- **Access:** every clinical read and write needs a session. Production has demo sign-in, clinician switching and the shared seed password off unless `DEMO_MODE=true`; registration needs `REGISTRATION_CODE` (owner-set; closed when unset). Uploaded DICOM PatientName is shown as initials only.
 - **Organ boards:** Thoracic, Neuro, Breast, GI, Heme (+ Multi-Organ). Adding one = `types.ts` + `organPalette.ts` + DESIGN_SYSTEM.md together.
 - **Clinical safety:** do not change clinical calculation logic (RECIST, staging, quorum, analytics) unless the task requires it; if you do, sanity-check the result by hand against the sample cases on screen. AI output is decision *support*; a human commits the decision.
 - **Backend/API/DB** work is not governed by the design system, but any UI it surfaces is.

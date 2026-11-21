@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resources · OncoBoard MDT</title>
+<meta name="description" content="Reading for tumour board members: MDT evidence, NHS streamlining guidance, RECIST 1.1, WHO CNS5, AI principles and a coordinator's checklist.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+<script>try{var t=localStorage.getItem('ob-b-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<style>
+.feat{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:center;padding:clamp(28px,4vw,52px);border-radius:28px}
+.feat h3{font-size:clamp(28px,3.2vw,46px);letter-spacing:-.035em;line-height:1}
+.feat .figs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line2)}
+.feat .figs div{padding:16px 12px 0 0}
+.feat .figs b{display:block;font:800 clamp(34px,4vw,60px)/1 var(--display);letter-spacing:-.05em}
+.feat .figs span{font-size:13px;color:var(--dim);display:block;margin-top:6px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:0 40px;margin:32px 0 0;border-top:1px solid var(--line2)}
+.gloss div{padding:20px 0;border-bottom:1px solid var(--line)}
+.gloss dt{font:700 20px var(--display);letter-spacing:-.015em;margin:0}
+.gloss dd{margin:6px 0 0;color:var(--muted);font-size:15.5px}
+.gsearch{position:relative;max-width:420px;margin-top:32px}
+.gsearch .gi{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--dim);pointer-events:none;display:flex}
+.gsearch input{width:100%;height:50px;border-radius:999px;border:1.5px solid var(--line2);background:var(--panel);color:var(--ink);font:400 16px var(--body);padding:0 18px 0 44px;transition:border-color .2s}
+.gsearch input:focus{outline:none;border-color:var(--accent)}
+.empty{margin-top:24px;color:var(--dim);font-size:15px}
+@media (max-width:860px){.feat{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="site-header"></div>
+<main data-page="resources">
+
+<div class="phero"><div class="wrap">
+  <p class="crumb"><a href="./">Home</a><span class="sep">/</span><span>Resources</span></p>
+  <h1 class="ptitle"><span class="ln"><span>Read before</span></span><span class="ln"><span class="hl">the next board.</span></span></h1>
+  <p class="plede">Short, sourced reading for the people who sit on tumour boards. <b>The evidence on how MDTs spend their time, the rules behind response and grading, and the checklists that keep an hour to an hour.</b></p>
+  <div class="spectrum" aria-hidden="true"></div>
+</div></div>
+
+<section class="sec" style="padding-top:clamp(24px,4vw,48px)"><div class="wrap">
+  <a class="card feat" href="article.html#mdt-efficiency-study">
+    <div><span class="tag">Evidence · Featured</span><h3 style="margin-top:18px">Where lung MDT time goes: findings from eight teams</h3><p style="margin-top:14px;font-size:17px">A 2023 study sat in on 96 lung cancer MDT meetings in one UK network. What it found, and the five changes we would make first.</p><span class="go">Read the article <span data-i="arrow"></span></span></div>
+    <div class="figs" aria-label="Key findings"><div><b>24%</b><span>of decisions deferred</span></div><div><b>21%</b><span>of meetings quorate</span></div><div><b>60%</b><span>of cases with fitness recorded</span></div></div>
+  </a>
+
+  <div class="filters" role="group" aria-label="Filter articles by category" id="filters">
+    <button type="button" aria-pressed="true" data-f="all">All</button><button type="button" aria-pressed="false" data-f="Evidence">Evidence</button><button type="button" aria-pressed="false" data-f="Clinical">Clinical</button><button type="button" aria-pressed="false" data-f="Operations">Operations</button><button type="button" aria-pressed="false" data-f="AI">AI</button>
+  </div>
+  <p class="sr" aria-live="polite" id="fcount"></p>
+  <div class="cards" id="grid" style="margin-top:24px">
+    <a class="card" data-cat="Evidence" href="article.html#mdt-efficiency-study"><span class="tag">Evidence</span><h3>Where lung MDT time goes: findings from eight teams</h3><p>Deferrals, quorum and missing fitness data across 96 meetings, and what a board can fix first.</p><span class="meta">3 min read</span></a>
+    <a class="card" data-cat="Operations" href="article.html#streamlining-mdts"><span class="tag">Operations</span><h3>Streamlining MDT meetings: what the 2020 NHS England guidance asks for</h3><p>Standards of care, triage before the meeting, and the five things that must be in place first.</p><span class="meta">3 min read</span></a>
+    <a class="card" data-cat="Clinical" href="article.html#recist-target-lesions"><span class="tag">Clinical</span><h3>RECIST 1.1 at the board: choosing and measuring target lesions</h3><p>The measurability rules, the four response categories and a worked example of the nadir trap.</p><span class="meta">4 min read</span></a>
+    <a class="card" data-cat="Operations" href="article.html#coordinator-checklist"><span class="tag">Operations</span><h3>The coordinator's checklist for a 60-minute board</h3><p>From T−48 hours to the hour after: building the list, budgeting the time, closing the record.</p><span class="meta">3 min read</span></a>
+    <a class="card" data-cat="AI" href="article.html#ai-at-the-board"><span class="tag">AI</span><h3>AI at the tumour board: where it helps and where it stops</h3><p>Seven principles for AI that drafts and summarises without ever taking the decision.</p><span class="meta">3 min read</span></a>
+    <a class="card" data-cat="Clinical" href="article.html#who-cns5-primer"><span class="tag">Clinical</span><h3>WHO CNS5 for the rest of the board</h3><p>Integrated diagnosis, the three adult-type diffuse gliomas, and what to ask the pathologist.</p><span class="meta">3 min read</span></a>
+  </div>
+</div></section>
+
+<section class="sec" id="glossary" style="padding-top:0"><div class="wrap">
+  <div class="head"><div><p class="lab">Glossary</p><h2 class="h2">The words<br><span class="soft">on the board list.</span></h2></div><p class="intro">Plain definitions for the terms that come up in every meeting, for new members and for the people who support them.</p></div>
+  <div class="gsearch"><label class="sr" for="gq">Filter glossary terms</label><span class="gi" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><input id="gq" type="search" placeholder="Filter terms, for example RECIST" autocomplete="off"></div>
+  <dl class="gloss" id="gloss">
+    <div><dt>MDT</dt><dd>Multidisciplinary team. The meeting, often called a tumour board, where specialists agree a treatment recommendation for each patient's case.</dd></div>
+    <div><dt>Quorum</dt><dd>The minimum set of specialties needed for a valid recommendation. In OncoBoard, quorum is met when three specialties have voted.</dd></div>
+    <div><dt>RECIST 1.1</dt><dd>Response Evaluation Criteria in Solid Tumours, version 1.1. Rules for measuring target lesions and calling complete response, partial response, stable disease or progressive disease.</dd></div>
+    <div><dt>AJCC TNM</dt><dd>The American Joint Committee on Cancer staging system. Tumour (T), nodes (N) and metastasis (M) combine into a stage group such as Stage IIIA.</dd></div>
+    <div><dt>ECOG</dt><dd>Eastern Cooperative Oncology Group performance status, from 0 (fully active) to 5 (dead). It records how fit a patient is for treatment.</dd></div>
+    <div><dt>VAF</dt><dd>Variant allele frequency. The proportion of sequencing reads that carry a given variant, reported as a percentage.</dd></div>
+    <div><dt>NGS tiers</dt><dd>The AMP/ASCO/CAP scheme for somatic variants. Tier I has strong clinical significance, Tier II potential significance, Tier III unknown significance and Tier IV is benign or likely benign.</dd></div>
+    <div><dt>PD-L1 TPS</dt><dd>Tumour proportion score. The percentage of viable tumour cells showing partial or complete membrane staining for PD-L1.</dd></div>
+    <div><dt>Deauville scale</dt><dd>A five-point scale for FDG PET-CT in lymphoma. It compares uptake in residual disease with the mediastinal blood pool and the liver.</dd></div>
+    <div><dt>Standards of Care</dt><dd>In NHS England's 2020 streamlining guidance, agreed statements of the treatment a patient should expect for a defined presentation, used to decide which cases need full discussion.</dd></div>
+  </dl>
+  <p class="empty" id="gempty" hidden>No terms match that filter.</p>
+</div></section>
+
+<section class="sec" style="padding-top:0"><div class="wrap"><div class="mesh slim"><span class="blob" style="background:#0284C7;left:-12%;top:-30%"></span><span class="blob" style="background:#7C3AED;right:-15%;top:-25%"></span><span class="blob" style="background:#DB2777;left:28%;bottom:-55%"></span><span class="blob" style="background:#D97706;right:2%;bottom:-65%;width:36%"></span><span class="grain" aria-hidden="true"></span><div><h2>See it on one of your own cases.</h2><p class="sub">A 30-minute walkthrough with your boards, your roles and a de-identified sample case.</p></div><a class="btn btn-p btn-w mag" href="contact.html">Book a Demo <span class="ar" data-i="arrow"></span></a></div></div></section>
+</main>
+<div id="site-footer"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
+<script>
+const {$,$$}=OB;
+const fb=$$('#filters button'),cards=$$('#grid .card');
+fb.forEach(b=>b.onclick=()=>{const f=b.dataset.f;fb.forEach(x=>x.setAttribute('aria-pressed',x===b));let n=0;cards.forEach(c=>{const on=f==='all'||c.dataset.cat===f;c.hidden=!on;n+=on});$('#fcount').textContent=`${n} article${n===1?'':'s'} shown`});
+const terms=$$('#gloss>div');
+$('#gq').addEventListener('input',e=>{const q=e.target.value.trim().toLowerCase();let n=0;terms.forEach(t=>{const on=!q||t.textContent.toLowerCase().includes(q);t.hidden=!on;n+=on});$('#gempty').hidden=n>0});
+</script>
+</body></html>

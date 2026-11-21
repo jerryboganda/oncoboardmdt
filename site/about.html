@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>About · OncoBoard MDT</title>
+<meta name="description" content="Why OncoBoard MDT exists, what it believes about tumour board software and the lines it will not cross.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+<script>try{var t=localStorage.getItem('ob-b-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<style>
+.stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stats.four .stat{padding-right:24px}
+@media (max-width:1000px){.stats.four{grid-template-columns:1fr 1fr}.stats.four .stat{padding-bottom:28px}}
+@media (max-width:600px){.stats.four{grid-template-columns:1fr}}
+.never{list-style:none;margin:56px 0 0;padding:0;border-top:1px solid var(--line2)}
+.never li{display:grid;grid-template-columns:56px minmax(0,1fr) minmax(0,1fr);gap:16px 32px;align-items:baseline;padding:28px 0;border-bottom:1px solid var(--line)}
+.never .x{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;color:var(--risk);align-self:center}
+.never .x [data-i]{width:17px;height:17px}
+.never h3{font-size:clamp(22px,2.4vw,34px);letter-spacing:-.03em;line-height:1.1}
+.never p{color:var(--muted);font-size:16.5px}
+@media (max-width:860px){.never li{grid-template-columns:48px minmax(0,1fr)}.never p{grid-column:2}}
+</style>
+</head>
+<body>
+<div id="site-header"></div>
+<main data-page="about">
+
+<div class="phero"><div class="wrap">
+  <p class="crumb"><a href="./">Home</a><span class="sep">/</span><span>About</span></p>
+  <h1 class="ptitle"><span class="ln"><span>Built for the hour</span></span><span class="ln"><span class="hl">the board meets.</span></span></h1>
+  <p class="plede">OncoBoard MDT exists for one meeting: the multidisciplinary tumour board, where a patient's treatment is decided by specialists who rarely share a room. <b>We build what that meeting needs: a prepared case before it, one shared image during it and a signed record after it.</b></p>
+  <div class="cta-row"><a class="btn btn-p mag" href="contact.html">Book a Demo <span class="ar" data-i="arrow"></span></a><a class="btn btn-s" href="#principles">What We Believe</a></div>
+  <div class="spectrum" aria-hidden="true"></div>
+</div></div>
+
+<!-- WHY -->
+<section class="sec" id="why" style="padding-top:0">
+  <div class="evi"><div class="wrap">
+    <div class="head">
+      <div><p class="lab">Why we exist</p><h2 class="h2">The evidence keeps saying the same thing. <span class="soft">The meeting needs better tools.</span></h2></div>
+      <p class="intro">Studies of working tumour boards find the same gaps again and again: information missing at the table, specialties missing from the room and decisions that never reach the patient.</p>
+    </div>
+    <div class="stats four">
+      <div class="stat"><div class="n" data-n="24">24<sup>%</sup></div><p>of lung MDT case discussions ended with the decision deferred, most often while results were pending.</p></div>
+      <div class="stat"><div class="n" data-n="21">21<sup>%</sup></div><p>of observed lung MDT meetings were fully quorate.</p></div>
+      <div class="stat"><div class="n" data-n="60">60<sup>%</sup></div><p>of cases discussed had fitness or performance status available, from 30% to 75% by team.</p></div>
+      <div class="stat"><div class="n" data-n="6.9" data-d="1">6.9<sup>%</sup></div><p>of 289 breast MDT decisions in one centre were not implemented.</p></div>
+    </div>
+    <p class="src"><span>Zasada et al., <i>Cancer Medicine</i>, 2023: 8 lung MDTs, 96 meetings, 12 weeks.</span><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10166965/" target="_blank" rel="noopener">Read the lung study</a><span>English et al., <i>The Breast Journal</i>, 2012.</span><a href="https://doi.org/10.1111/j.1524-4741.2012.01270.x" target="_blank" rel="noopener">Read the breast study</a></p>
+  </div></div>
+</section>
+
+<!-- PRINCIPLES -->
+<section class="sec" id="principles" style="padding-top:clamp(40px,6vw,80px)">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">What we believe</p><h2 class="h2">Six rules.<br><span class="soft">Every screen follows them.</span></h2></div><p class="intro">These are design decisions you can see in the product. They decide what gets built and what gets left out.</p></div>
+    <div class="cards">
+      <div class="card"><span class="rule" style="background:var(--thor)" aria-hidden="true"></span><span class="ic"><span data-i="monitor"></span></span><h3>A clinical cockpit.</h3><p>Dense, calm and quick to scan. Each case gets a few minutes at the board, so the screen shows what the decision needs and little else.</p></div>
+      <div class="card"><span class="rule" style="background:var(--neuro)" aria-hidden="true"></span><span class="ic"><span data-i="clock"></span></span><h3>Speed over spectacle.</h3><p>Motion in the app settles in about 220 milliseconds. Nothing decorative stands between a clinician and the next case.</p></div>
+      <div class="card"><span class="rule" style="background:var(--breast)" aria-hidden="true"></span><span class="ic"><span data-i="layers"></span></span><h3>Colour means something.</h3><p>Every organ board has its own hue. Rose, amber and emerald carry urgency and status, always beside a text label, so nobody relies on colour alone.</p></div>
+      <div class="card"><span class="rule" style="background:var(--gi)" aria-hidden="true"></span><span class="ic"><span data-i="ruler"></span></span><h3>Data is monospace.</h3><p>MRNs, TNM, variants, millimetres and HU are set in a monospaced face, so columns line up and a 1 never passes for an l.</p></div>
+      <div class="card"><span class="rule" style="background:var(--heme)" aria-hidden="true"></span><span class="ic"><span data-i="user"></span></span><h3>De-identified by default.</h3><p>An MRN and initials identify each case. The case record has no field for a full name.</p></div>
+      <div class="card"><span class="rule" style="background:var(--accent)" aria-hidden="true"></span><span class="ic"><span data-i="sparkles"></span></span><h3>AI drafts. Clinicians decide.</h3><p>Assistants are labelled, disclaimed and run only when asked. A clinician casts every vote and signs every decision.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- NEVER -->
+<section class="sec" id="never" style="padding-top:0">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">Lines we hold</p><h2 class="h2">What we will<br><span class="soft">never do.</span></h2></div><p class="intro">Some decisions are settled before any roadmap discussion starts.</p></div>
+    <ul class="never">
+      <li class="rv"><span class="x" aria-hidden="true"><span data-i="x"></span></span><h3>Store a patient's full name.</h3><p>The case record has no field for one. Cases are identified by MRN and initials, and that will not change.</p></li>
+      <li class="rv"><span class="x" aria-hidden="true"><span data-i="x"></span></span><h3>Let AI vote, sign off or change the record.</h3><p>Assistants read and draft. Every vote, every sign-off and every edit is made by a clinician under their own account.</p></li>
+      <li class="rv"><span class="x" aria-hidden="true"><span data-i="x"></span></span><h3>Hide who voted for what.</h3><p>Each vote is stored with the specialty and clinician who cast it, and dissent stays with the case.</p></li>
+      <li class="rv"><span class="x" aria-hidden="true"><span data-i="x"></span></span><h3>Animate the diagnostic image.</h3><p>Motion stays in the controls around the DICOM viewer. The image moves only when a clinician moves it.</p></li>
+    </ul>
+  </div>
+</section>
+
+<!-- HOW WE BUILD -->
+<section class="sec" id="how" style="padding-top:0">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">How we build</p><h2 class="h2">Careful where<br><span class="soft">it counts.</span></h2></div><p class="intro">Clinical logic gets checked by hand. Interface details get the same attention, because they are what a clinician touches at 07:30.</p></div>
+    <div class="steps">
+      <div><span class="n">01</span><h3>Checked by hand</h3><p>RECIST responses, AJCC stage groups and quorum are checked by hand against sample cases whenever that logic changes.</p></div>
+      <div><span class="n">02</span><h3>Every change confirms itself</h3><p>Registering a case, saving a measurement, casting a vote and signing off each show a confirmation and land in the audit log.</p></div>
+      <div><span class="n">03</span><h3>Two rooms, two themes</h3><p>Clinical Light for clinic rooms in daylight. Dark Radiology for the low-glare reading room.</p></div>
+      <div><span class="n">04</span><h3>Keyboard first</h3><p>⌘/Ctrl+K jumps to any case, board or view. Every control has a label and a visible focus state.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0"><div class="wrap"><div class="mesh slim"><span class="blob" style="background:#0284C7;left:-12%;top:-30%"></span><span class="blob" style="background:#7C3AED;right:-15%;top:-25%"></span><span class="blob" style="background:#DB2777;left:28%;bottom:-55%"></span><span class="blob" style="background:#D97706;right:2%;bottom:-65%;width:36%"></span><span class="grain" aria-hidden="true"></span><div><h2>See it with your own board.</h2><p class="sub">Thirty minutes, a de-identified sample case and the people who sit on your board.</p></div><a class="btn btn-p btn-w mag" href="contact.html">Book a Demo <span class="ar" data-i="arrow"></span></a></div></div></section>
+
+</main>
+<div id="site-footer"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
+<script>
+/* count the evidence figures up once they scroll into view; static text stays correct without GSAP */
+if(OB.G)OB.$$('.stat .n').forEach(n=>{const to=+n.dataset.n,d=+(n.dataset.d||0),o={v:0};gsap.to(o,{v:to,duration:1.6,ease:'power3.out',onUpdate:()=>n.innerHTML=o.v.toFixed(d)+'<sup>%</sup>',scrollTrigger:{trigger:n,start:'top 88%',once:true}})});
+</script>
+</body></html>

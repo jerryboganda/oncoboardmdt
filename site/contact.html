@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Book a Demo · OncoBoard MDT</title>
+<meta name="description" content="Book a 30-minute OncoBoard MDT walkthrough: your boards and roles, and a de-identified case from intake to signed consensus.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+<script>try{var t=localStorage.getItem('ob-b-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<style>
+.formcard{border-radius:28px;background:var(--panel);border:1px solid var(--line);padding:clamp(22px,3.5vw,40px)}
+.formcard h2{font-size:clamp(26px,2.6vw,34px);letter-spacing:-.03em}
+.formcard .sub2{color:var(--muted);margin-top:8px;font-size:16px}
+.lform{margin-top:24px}
+.lform .chk{display:flex;gap:12px;align-items:flex-start;font-weight:400;color:var(--muted);font-size:15px;line-height:1.5}
+.lform .chk input{width:20px;height:20px;min-height:0;padding:0;margin:2px 0 0;flex:none;accent-color:var(--accent)}
+.lform .req{color:var(--dim);font-weight:400}
+.side{display:grid;gap:40px}
+.side .steps{grid-template-columns:1fr;margin-top:20px}
+.side .steps>div{padding:18px 0;border-bottom:1px solid var(--line)}
+.side h3.t{font-size:24px;letter-spacing:-.025em}
+.nextlist{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:12px;font-size:16px;color:var(--muted)}
+.nextlist li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px}
+.nextlist li span{font:500 12px var(--mono);color:var(--dim);padding-top:3px}
+.sent{display:grid;gap:16px}
+.sent:focus{outline:none}
+.sent .ok{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--heme) 14%,transparent);color:var(--ok)}
+.sent .ok [data-i]{width:22px;height:22px}
+.sent dl{margin:0;display:grid;border-top:1px solid var(--line2)}
+.sent dl div{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
+.sent dt{color:var(--dim)}.sent dd{margin:0;color:var(--ink2);overflow-wrap:anywhere}
+@media (max-width:640px){.sent dl div{grid-template-columns:1fr;gap:2px}}
+</style>
+</head>
+<body>
+<div id="site-header"></div>
+<main data-page="contact">
+
+<div class="phero"><div class="wrap">
+  <p class="crumb"><a href="./">Home</a><span class="sep">/</span><span>Book a Demo</span></p>
+  <h1 class="ptitle"><span class="ln"><span>Bring one real board.</span></span><span class="ln"><span class="hl">We'll run it with you.</span></span></h1>
+  <p class="plede">Thirty minutes, online, with the people who sit on your board. <b>We set up your boards and roles, then your team takes a de-identified case from intake to a signed consensus report.</b></p>
+  <div class="spectrum" aria-hidden="true"></div>
+</div></div>
+
+<section class="sec" style="padding-top:clamp(24px,4vw,48px)"><div class="wrap split">
+  <div class="formcard">
+    <div id="formwrap">
+      <h2>Request your walkthrough</h2>
+      <p class="sub2">Fields marked <span aria-hidden="true">*</span><span class="sr">with an asterisk</span> are required.</p>
+      <form class="lform" id="dform" novalidate>
+        <div class="row2">
+          <label for="fn">First name *<input id="fn" autocomplete="given-name" required aria-describedby="e-fn"><span class="err" id="e-fn">Enter your first name.</span></label>
+          <label for="ln">Last name *<input id="ln" autocomplete="family-name" required aria-describedby="e-ln"><span class="err" id="e-ln">Enter your last name.</span></label>
+        </div>
+        <label for="em">Work email *<input id="em" type="email" autocomplete="email" required placeholder="name@hospital.org" aria-describedby="e-em"><span class="err" id="e-em">Enter a work email address, for example name@hospital.org.</span></label>
+        <label for="org">Hospital or cancer centre *<input id="org" autocomplete="organization" required aria-describedby="e-org"><span class="err" id="e-org">Enter the hospital or cancer centre you work for.</span></label>
+        <label for="role">Your role<select id="role"><option>MDT Coordinator</option><option>Board Chair</option><option>Medical Oncology</option><option>Surgical Oncology</option><option>Radiation Oncology</option><option>Diagnostic Radiology</option><option>Molecular Pathology</option><option>Cancer Services Management</option><option>IT or Information Governance</option></select></label>
+        <fieldset aria-describedby="e-bd"><legend>Boards you run *</legend>
+          <div class="chipset" id="boards">
+            <button type="button" aria-pressed="false" data-b="Thoracic"><i class="sw" style="background:var(--thor)"></i>Thoracic</button>
+            <button type="button" aria-pressed="false" data-b="Neuro"><i class="sw" style="background:var(--neuro)"></i>Neuro</button>
+            <button type="button" aria-pressed="false" data-b="Breast"><i class="sw" style="background:var(--breast)"></i>Breast</button>
+            <button type="button" aria-pressed="false" data-b="GI"><i class="sw" style="background:var(--gi)"></i>GI</button>
+            <button type="button" aria-pressed="false" data-b="Heme"><i class="sw" style="background:var(--heme)"></i>Heme</button>
+            <button type="button" aria-pressed="false" data-b="Multi-Organ"><i class="sw" style="background:var(--accent)"></i>Multi-Organ</button>
+          </div>
+          <span class="err" id="e-bd" style="margin-top:8px">Choose at least one board you run.</span>
+        </fieldset>
+        <div class="row2">
+          <label for="vol">Cases discussed per week<select id="vol"><option>Fewer than 10</option><option>10 to 25</option><option>26 to 50</option><option>More than 50</option></select></label>
+          <label for="when">When you want to start<select id="when"><option>Within a month</option><option>In 1 to 3 months</option><option>In 3 to 6 months</option><option>Just exploring</option></select></label>
+        </div>
+        <label for="msg">Anything we should know<textarea id="msg" maxlength="1000" aria-describedby="h-msg"></textarea><span class="hint" id="h-msg">Optional. Please do not include any patient information.</span></label>
+        <label class="chk" for="consent"><input id="consent" type="checkbox" required aria-describedby="e-cs"><span>I agree that OncoBoard MDT may contact me about this demo. See the <a href="legal.html#privacy">privacy notice</a>. *<span class="err" id="e-cs" style="margin-top:6px">Tick the box so we can contact you about the demo.</span></span></label>
+        <div><button class="btn btn-p mag" type="submit">Book a Demo <span class="ar" data-i="arrow"></span></button></div>
+        <p class="hint">Design preview. Submitting this form sends nothing.</p>
+      </form>
+    </div>
+    <div class="sent" id="done" tabindex="-1" hidden>
+      <span class="ok"><span data-i="check"></span></span>
+      <h2>Request recorded.</h2>
+      <p class="sub2">This is a design preview, so nothing was sent and no one will contact you. On the live site, this is what we would receive:</p>
+      <dl id="sum"></dl>
+      <div><button class="btn btn-s" type="button" id="again">Edit the Request</button></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div>
+      <p class="lab">The 30 minutes</p>
+      <h3 class="t" style="margin-top:14px">What the session covers</h3>
+      <div class="steps">
+        <div><span class="n">5 min</span><h3>Your boards and roles</h3><p>We confirm which boards you run, who chairs, and which specialties vote.</p></div>
+        <div><span class="n">15 min</span><h3>One case, intake to signed</h3><p>Your team registers a de-identified case, reviews the dossier and DICOM, votes, and signs off the consensus.</p></div>
+        <div><span class="n">10 min</span><h3>Your questions</h3><p>Workflow, security, rollout. Bring whoever needs to ask them.</p></div>
+      </div>
+    </div>
+    <div>
+      <p class="lab">What happens next</p>
+      <ol class="nextlist">
+        <li><span>01</span>We confirm a time with you by email.</li>
+        <li><span>02</span>Before the session, we set up a sandbox with your boards, roles and clinicians.</li>
+        <li><span>03</span>On the day, your team drives the case. We answer questions as you go.</li>
+      </ol>
+    </div>
+    <a class="card" href="security.html"><span class="ic"><span data-i="shield"></span></span><h3>Bring your security questionnaire</h3><p>De-identified cases, scrypt-hashed passwords, 12-hour sessions and a full audit log. Read the overview before you come.</p><span class="go">Security &amp; governance <span data-i="arrow"></span></span></a>
+  </div>
+</div></section>
+
+<section class="sec" id="faq" style="padding-top:0"><div class="wrap faq">
+  <div><p class="lab">FAQ</p><h2 class="h2">Before<br><span class="soft">you book.</span></h2></div>
+  <div class="faq-list">
+    <details open><summary>Who should come to the demo?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">The chair, the coordinator and one clinician from each specialty that votes. Add someone from IT or information governance if they will review the setup.</div></details>
+    <details><summary>Do we need to share any patient data?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">No. The session uses a de-identified sample case. Please do not send identifiable patient information through this form or during the session.</div></details>
+    <details><summary>Which boards can we see?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">Any of Thoracic, Neuro, Breast, GI, Heme and Multi-Organ. Each opens with its own imaging presets, so choose the boards you run in the form.</div></details>
+    <details><summary>What does it cost?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">It depends on the boards and sites you run. The <a class="link" href="pricing.html">pricing page</a> sets out what each plan includes.</div></details>
+    <details><summary>Can our IT team review the architecture?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">Yes. OncoBoard runs on Node.js and MySQL, and the <a class="link" href="security.html">security page</a> covers data handling, sign-in, sessions and the audit log. Bring their questions to the session.</div></details>
+  </div>
+</div></section>
+</main>
+<div id="site-footer"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
+<script>
+const {$,$$,G,paintIcons}=OB;
+const form=$('#dform'),chips=$$('#boards button');
+chips.forEach(b=>b.onclick=()=>{b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');if(picked().length)$('#e-bd').style.display='none'});
+const picked=()=>chips.filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>b.dataset.b);
+const emailOk=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const checks=[['fn',v=>v.trim()],['ln',v=>v.trim()],['em',v=>emailOk(v.trim())],['org',v=>v.trim()]];
+function mark(id,ok){const el=$('#'+id),err=$('#e-'+id);el.setAttribute('aria-invalid',!ok);err.style.display=ok?'none':'block';return ok}
+checks.forEach(([id,ok])=>$('#'+id).addEventListener('blur',e=>{if(e.target.value)mark(id,ok(e.target.value))}));
+form.addEventListener('submit',e=>{
+  e.preventDefault();
+  let first=null;
+  checks.forEach(([id,ok])=>{if(!mark(id,ok($('#'+id).value))&&!first)first=$('#'+id)});
+  const bd=picked().length>0;$('#e-bd').style.display=bd?'none':'block';if(!bd&&!first)first=chips[0];
+  const cs=$('#consent').checked;$('#consent').setAttribute('aria-invalid',!cs);$('#e-cs').style.display=cs?'none':'block';if(!cs&&!first)first=$('#consent');
+  if(first){first.focus();return}
+  const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const rows=[['Name',$('#fn').value.trim()+' '+$('#ln').value.trim()],['Work email',$('#em').value.trim()],['Organisation',$('#org').value.trim()],['Role',$('#role').value],['Boards',picked().join(', ')],['Weekly cases',$('#vol').value],['Start',$('#when').value]];
+  if($('#msg').value.trim())rows.push(['Note',$('#msg').value.trim()]);
+  $('#sum').innerHTML=rows.map(r=>`<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('');
+  $('#formwrap').hidden=true;const d=$('#done');d.hidden=false;paintIcons(d);d.focus();
+  if(G)gsap.fromTo('#done>*',{y:16,opacity:0},{y:0,opacity:1,duration:.5,stagger:.06,ease:'power3.out'});
+});
+$('#again').onclick=()=>{$('#done').hidden=true;$('#formwrap').hidden=false;$('#fn').focus()};
+</script>
+</body></html>

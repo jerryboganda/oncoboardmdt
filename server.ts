@@ -1063,17 +1063,26 @@ async function bootstrap(): Promise<void> {
   const server = http.createServer(app);
   boardHub.attach(server);
 
+  // Marketing site at /, clinical app at /app (API and WebSocket stay at /api and /ws).
+  const sitePath = path.resolve(process.cwd(), 'site');
+  app.get(/^\/app$/, (_req, res) => res.redirect(301, '/app/'));
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
+    app.use(express.static(sitePath, { extensions: ['html'] }));
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
+    app.use('/app', express.static(distPath));
+    app.get('/app/*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
+    });
+    app.use(express.static(sitePath, { extensions: ['html'] }));
+    app.use((_req, res) => {
+      res.status(404).sendFile(path.join(sitePath, 'index.html'));
     });
   }
 

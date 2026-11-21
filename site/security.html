@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Security · OncoBoard MDT</title>
+<meta name="description" content="How OncoBoard MDT de-identifies cases, controls access, records an audit trail and keeps AI inside clear limits.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+<script>try{var t=localStorage.getItem('ob-b-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<style>
+/* data-flow diagram: every colour comes from the theme tokens */
+.dgwrap{margin-top:48px;border-radius:24px;border:1px solid var(--line);background:var(--panel);overflow-x:auto}
+.dg{display:block;min-width:760px;width:100%;height:auto}
+.dg .box{fill:var(--panel2);stroke:var(--line2);stroke-width:1.5}
+.dg .zone{fill:none;stroke:var(--line2);stroke-width:1.5;stroke-dasharray:6 6}
+.dg .t{fill:var(--ink);font:700 17px var(--display)}
+.dg .s{fill:var(--muted);font:400 13px var(--body)}
+.dg .m{fill:var(--dim);font:500 12px var(--mono)}
+.dg .flow{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:7 7;animation:flow 1.2s linear infinite}
+.dg .flow.ai{stroke:var(--neuro)}
+.dg .head{fill:var(--accent)}.dg .head.ai{fill:var(--neuro)}
+.dg .chip{fill:var(--bg2);stroke:var(--line)}
+@keyframes flow{to{stroke-dashoffset:-28}}
+.legend{display:flex;flex-wrap:wrap;gap:10px 24px;padding:16px 22px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{width:22px;height:0;border-top:2px dashed var(--accent)}
+.legend i.ai{border-color:var(--neuro)}.legend i.zn{border-color:var(--line2)}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:22px}
+.qbox{margin-top:24px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center}
+@media (max-width:760px){.qbox{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="site-header"></div>
+<main data-page="security">
+
+<div class="phero"><div class="wrap">
+  <p class="crumb"><a href="./">Home</a><span class="sep">/</span><span>Security</span></p>
+  <h1 class="ptitle"><span class="ln"><span>Patient data,</span></span><span class="ln"><span class="hl">handled like it matters.</span></span></h1>
+  <p class="plede">OncoBoard holds the clinical detail a tumour board needs and nothing that names the patient. <b>This page sets out what is stored, who can change it, where it travels and what your organisation keeps control of.</b></p>
+  <div class="cta-row"><a class="btn btn-p mag" href="contact.html">Bring Your Questionnaire <span class="ar" data-i="arrow"></span></a><a class="btn btn-s" href="#architecture">See the Architecture</a></div>
+  <div class="pstats">
+    <div><div class="v mono">0</div><p>Fields for a patient's full name</p></div>
+    <div><div class="v mono">scrypt</div><p>Password hashing with a per-user salt</p></div>
+    <div><div class="v mono">12 h</div><p>Before a session expires</p></div>
+    <div><div class="v mono">11</div><p>Clinical actions written to the audit log</p></div>
+  </div>
+  <div class="spectrum" aria-hidden="true"></div>
+</div></div>
+
+<nav class="subnav" aria-label="On this page"><div class="wrap">
+  <a href="#data">Data</a><a href="#access">Access</a><a href="#audit">Audit</a><a href="#ai-governance">AI</a><a href="#architecture">Architecture</a><a href="#responsibilities">Responsibilities</a><a href="#questions">Questions</a>
+</div></nav>
+
+<div class="wrap">
+  <!-- DATA -->
+  <div class="frow" id="data" style="border-top:0">
+    <div>
+      <span class="n"><i style="background:var(--thor)"></i>01 · Data</span>
+      <h2 class="h3big">De-identified by design.</h2>
+      <p class="body">A case is identified by its MRN and the patient's initials. The case record has no field for a full name, date of birth or address, so there is nowhere to type one.</p>
+      <ul class="checks">
+        <li><span data-i="check"></span>Stored: MRN, initials, age, sex, board, urgency and status.</li>
+        <li><span data-i="check"></span>Stored: TNM, AJCC stage group, ECOG, pathology, IHC, NGS variants, labs, treatment history and trial matches.</li>
+        <li><span data-i="check"></span>Stored: saved measurements, votes, minutes, case chat and the audit log.</li>
+        <li><span data-i="check"></span>Not sent to the server: uploaded DICOM files. They are parsed in the clinician's browser.</li>
+      </ul>
+    </div>
+    <div class="mock" aria-label="Example case record as stored">
+      <div class="mock-h">Case record · as stored <small>Example</small></div>
+      <dl class="kv">
+        <div><dt>MRN</dt><dd>ONC-2026-4102</dd></div>
+        <div><dt>Patient</dt><dd>R.K. · 64</dd></div>
+        <div><dt>Board</dt><dd>Thoracic</dd></div>
+        <div><dt>Urgency</dt><dd class="st-warn">Priority</dd></div>
+        <div><dt>Staging</dt><dd>T2b N2 M0 · IIIA</dd></div>
+        <div><dt>ECOG</dt><dd>1</dd></div>
+        <div><dt>NGS · Tier I-A</dt><dd>EGFR p.Leu858Arg</dd></div>
+        <div><dt>Status</dt><dd class="st-info">In Review</dd></div>
+      </dl>
+      <div class="rowx"><span data-i="x" style="width:15px;height:15px;color:var(--dim)"></span><div style="min-width:0"><div class="m">Full name · date of birth · address</div><div class="d">The case record has no field for these</div></div><span class="s st-dim">Not stored</span></div>
+      <p class="callout warn"><b>DICOM headers can carry a name.</b> Uploaded series stay in the browser and only the measurements you save reach the server. The viewer still shows header tags, so upload de-identified exports from PACS.</p>
+    </div>
+  </div>
+
+  <!-- ACCESS -->
+  <div class="frow rev" id="access">
+    <div>
+      <span class="n"><i style="background:var(--neuro)"></i>02 · Access</span>
+      <h2 class="h3big">Every clinician signs in as themselves.</h2>
+      <p class="body">Accounts carry the clinician's specialty, title, institution and whether they chair the board. Votes, sign-offs and measurements are tied to that account, so the record shows who said what.</p>
+      <dl class="specs">
+        <div><dt>Password storage</dt><dd>scrypt · 16-byte random salt per user · 64-byte key</dd></div>
+        <div><dt>Password check</dt><dd>Constant-time comparison</dd></div>
+        <div><dt>Session token</dt><dd>256-bit random bearer token</dd></div>
+        <div><dt>Session lifetime</dt><dd>12 hours · revoked at sign-out</dd></div>
+        <div><dt>Signed-in only</dt><dd>Every write and every AI request</dd></div>
+        <div><dt>Roles</dt><dd>Six specialties · chair flag</dd></div>
+      </dl>
+    </div>
+    <div class="mock" aria-label="Example signed-in session">
+      <div class="mock-h">Signed-in session <small>Example</small></div>
+      <div class="rowx"><span class="av" aria-hidden="true" style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font:600 11px var(--mono);background:var(--panel);border:1px solid var(--line2)">DR</span><div style="min-width:0"><div class="m">Diagnostic Radiology</div><div class="d">Consultant · Thoracic Board</div></div><span class="s st-ok">Signed in</span></div>
+      <dl class="kv">
+        <div><dt>Chair</dt><dd>No</dd></div>
+        <div><dt>Token</dt><dd>9f3c…a71e · 64 hex</dd></div>
+        <div><dt>Expires</dt><dd>in 11 h 42 m</dd></div>
+        <div><dt>Can vote</dt><dd class="st-ok">Yes</dd></div>
+      </dl>
+      <div class="rowx"><span data-i="vote" style="width:15px;height:15px;color:var(--dim)"></span><div style="min-width:0"><div class="m">Vote · ONC-2026-4102</div><div class="d">Recorded under this account and specialty</div></div><span class="s st-info">Audited</span></div>
+    </div>
+  </div>
+
+  <!-- AUDIT -->
+  <div class="frow" id="audit">
+    <div>
+      <span class="n"><i style="background:var(--breast)"></i>03 · Audit</span>
+      <h2 class="h3big">Who did what, and when.</h2>
+      <p class="body">Each clinical change writes an audit entry with the clinician, their specialty, the action, the record it touched and the time. Your IT team reads it in the Audit &amp; Database view.</p>
+      <div class="actions" aria-label="Audited actions">
+        <span class="tag">Case created</span><span class="tag">Case updated</span><span class="tag">Measurement saved</span><span class="tag">Measurement deleted</span><span class="tag">Session scheduled</span><span class="tag">Vote cast</span><span class="tag">Consensus signed</span><span class="tag">AI synthesis</span><span class="tag">AI slice read</span><span class="tag">AI minutes drafted</span><span class="tag">Clinician registered</span>
+      </div>
+    </div>
+    <div class="mock" aria-label="Example audit entries">
+      <div class="mock-h">Audit log · ONC-2026-4102 <small>Example entries</small></div>
+      <div class="rowx"><span class="mono" style="font-size:12px;color:var(--dim)">07:46:12</span><div style="min-width:0"><div class="m">Measurement saved</div><div class="d">Diagnostic Radiology · Target lesion 1 · 24.5 mm</div></div><span class="s st-info">Imaging</span></div>
+      <div class="rowx"><span class="mono" style="font-size:12px;color:var(--dim)">07:49:30</span><div style="min-width:0"><div class="m">AI slice read</div><div class="d">Diagnostic Radiology · slice 42</div></div><span class="s" style="color:var(--neuro)">AI</span></div>
+      <div class="rowx"><span class="mono" style="font-size:12px;color:var(--dim)">07:52:40</span><div style="min-width:0"><div class="m">Vote cast</div><div class="d">Surgical Oncology · not for upfront resection</div></div><span class="s st-info">Vote</span></div>
+      <div class="rowx"><span class="mono" style="font-size:12px;color:var(--dim)">07:54:18</span><div style="min-width:0"><div class="m">AI minutes drafted</div><div class="d">Medical Oncology · chair</div></div><span class="s" style="color:var(--neuro)">AI</span></div>
+      <div class="rowx"><span class="mono" style="font-size:12px;color:var(--dim)">07:55:03</span><div style="min-width:0"><div class="m">Consensus signed</div><div class="d">Medical Oncology · chair · 5 of 5 votes</div></div><span class="s st-ok">Ratified</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI GOVERNANCE -->
+<section class="sec" id="ai-governance" style="padding-top:clamp(40px,6vw,80px)">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">AI governance</p><h2 class="h2">The AI can draft.<br><span class="soft">It cannot decide.</span></h2></div><p class="intro">OncoBoard's four assistants use the Google Gemini API. These are the limits they work inside.</p></div>
+    <div class="cards">
+      <div class="card"><span class="ic"><span data-i="radio"></span></span><h3>Called on request</h3><p>The server calls the model only when a clinician presses an assistant button. Nothing runs in the background, and without an API key configured nothing is sent at all.</p></div>
+      <div class="card"><span class="ic"><span data-i="eye"></span></span><h3>What leaves the server</h3><p>Case synthesis and case questions send the de-identified case context. A slice read sends a rendered image of the current slice, not the DICOM file. Minutes send the votes and recent case discussion.</p></div>
+      <div class="card"><span class="ic"><span data-i="sparkles"></span></span><h3>Labelled and disclaimed</h3><p>Every output is headed "AI Decision Support" and ends with a disclaimer, wherever it appears.</p></div>
+      <div class="card"><span class="ic"><span data-i="vote"></span></span><h3>Cannot act on the record</h3><p>Assistants cannot vote, sign off or edit a case. A clinician reads the draft and does each of those.</p></div>
+      <div class="card"><span class="ic"><span data-i="list"></span></span><h3>On the audit log</h3><p>Synthesis, slice reads and drafted minutes are written to the audit log with the clinician who asked.</p></div>
+      <div class="card"><span class="ic"><span data-i="key"></span></span><h3>Your key, your choice</h3><p>AI runs on an API key your organisation configures on the server. Leave it unset and the rest of OncoBoard works as normal.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section class="sec" id="architecture" style="padding-top:0">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">Architecture</p><h2 class="h2">One server.<br><span class="soft">One database.</span></h2></div><p class="intro">OncoBoard is a React 19 web app, a Node.js and Express server with a WebSocket hub, and a MySQL database. The recommended deployment serves it over HTTPS and WSS.</p></div>
+    <figure class="dgwrap rv" style="margin-inline:0">
+      <svg class="dg" viewBox="0 0 960 420" role="img" aria-labelledby="dg-t dg-d">
+        <title id="dg-t">OncoBoard data flow</title>
+        <desc id="dg-d">Clinician browsers connect over HTTPS and WSS to a Node.js and Express server with a WebSocket hub. The server reads and writes a MySQL database. Both sit inside the deployment your organisation approves. The server calls the Google Gemini API only when a clinician requests an assistant, sending de-identified case context.</desc>
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0 10 5 0 10z"/></marker>
+          <marker id="ahai" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head ai" d="M0 0 10 5 0 10z"/></marker>
+        </defs>
+        <rect class="zone" x="282" y="24" width="486" height="372" rx="22"/>
+        <text class="m" x="302" y="52">Deployment your organisation approves</text>
+
+        <rect class="box" x="20" y="138" width="210" height="144" rx="16"/>
+        <text class="t" x="40" y="176">Clinician browser</text>
+        <text class="s" x="40" y="202">React 19 web app</text>
+        <text class="s" x="40" y="224">DICOM parsed locally</text>
+        <text class="m" x="40" y="258">Clinical Light · Dark Radiology</text>
+
+        <path class="flow" d="M234 196 H300" marker-end="url(#ah)" marker-start="url(#ah)"/>
+        <path class="flow" d="M234 236 H300" marker-end="url(#ah)" marker-start="url(#ah)"/>
+        <text class="m" x="236" y="186">HTTPS</text>
+        <text class="m" x="244" y="258">WSS</text>
+
+        <rect class="box" x="306" y="96" width="250" height="236" rx="16"/>
+        <text class="t" x="326" y="134">Node.js + Express</text>
+        <rect class="chip" x="326" y="152" width="210" height="34" rx="9"/><text class="s" x="340" y="174">REST API · session check</text>
+        <rect class="chip" x="326" y="194" width="210" height="34" rx="9"/><text class="s" x="340" y="216">WebSocket hub · presence, sync</text>
+        <rect class="chip" x="326" y="236" width="210" height="34" rx="9"/><text class="s" x="340" y="258">Audit log writer</text>
+        <text class="m" x="326" y="306">scrypt · 12 h sessions</text>
+
+        <path class="flow" d="M560 214 H604" marker-end="url(#ah)" marker-start="url(#ah)"/>
+
+        <rect class="box" x="608" y="150" width="144" height="128" rx="16"/>
+        <text class="t" x="628" y="188">MySQL</text>
+        <text class="s" x="628" y="214">Cases, votes,</text>
+        <text class="s" x="628" y="234">measurements,</text>
+        <text class="s" x="628" y="254">audit log</text>
+
+        <path class="flow ai" d="M490 96 C 520 40, 700 20, 800 64" marker-end="url(#ahai)"/>
+        <rect class="box" x="800" y="40" width="144" height="108" rx="16"/>
+        <text class="t" x="818" y="76">Gemini API</text>
+        <text class="s" x="818" y="100">AI assistants</text>
+        <text class="m" x="818" y="128">On request only</text>
+        <text class="m" x="560" y="112">De-identified context</text>
+      </svg>
+      <figcaption class="legend"><span><i aria-hidden="true"></i>Clinical data in transit</span><span><i class="ai" aria-hidden="true"></i>AI request, only when a clinician asks</span><span><i class="zn" aria-hidden="true"></i>Inside your approved deployment</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- RESPONSIBILITIES -->
+<section class="sec" id="responsibilities" style="padding-top:0">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">Shared responsibilities</p><h2 class="h2">What we provide.<br><span class="soft">What stays with you.</span></h2></div><p class="intro">Security is split between the software and the organisation that runs it. This is where the line sits.</p></div>
+    <div class="tablewrap">
+      <table class="cmp">
+        <thead><tr><th scope="col">Area</th><th scope="col">OncoBoard provides</th><th scope="col">Your organisation provides</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Hosting</th><td>A Node.js app with a MySQL schema that runs on standard hosting</td><td>The server, database and network it runs on, or approval of the host</td></tr>
+          <tr><th scope="row">Encryption in transit</th><td>An app and WebSocket service that run behind HTTPS and WSS</td><td>The TLS certificate and the HTTPS endpoint</td></tr>
+          <tr><th scope="row">Backups</th><td>All case data in one MySQL database</td><td>Backup schedule, retention and tested restores</td></tr>
+          <tr><th scope="row">User accounts</th><td>Clinician accounts with specialty, title, institution and chair flag</td><td>Who gets an account, and removing leavers</td></tr>
+          <tr><th scope="row">Sessions</th><td>Random bearer tokens that expire after 12 hours</td><td>Device policy for shared reading-room workstations</td></tr>
+          <tr><th scope="row">De-identification</th><td>No field for a full name, date of birth or address</td><td>De-identified DICOM exports and identifier-free free text</td></tr>
+          <tr><th scope="row">AI</th><td>On-request calls, labelled output, no write access to the record</td><td>The decision to use AI and the API key under your own agreement</td></tr>
+          <tr><th scope="row">Audit</th><td>An audit entry for every clinical change and AI draft</td><td>Who reviews the log, and how often</td></tr>
+          <tr><th scope="row">Governance</th><td>A walkthrough of this page with your team</td><td>DPIA, clinical safety sign-off and local operating procedures</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="inv rv qbox">
+      <div><p class="lab">Information governance</p><h3 style="font-size:clamp(24px,2.6vw,36px);letter-spacing:-.03em;margin-top:12px">Bring your questionnaire.</h3><p style="margin-top:10px;max-width:40em">Send your security or DPIA questionnaire with your demo request. We will go through it with your information governance lead in the session.</p></div>
+      <a class="btn btn-p mag" href="contact.html" style="background:var(--bg);color:var(--ink)">Book a Demo <span class="ar" data-i="arrow"></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- QUESTIONS -->
+<section class="sec" id="questions" style="padding-top:0">
+  <div class="wrap faq">
+    <div><p class="lab">Questions</p><h2 class="h2">Asked by<br><span class="soft">governance teams.</span></h2></div>
+    <div class="faq-list">
+      <details open><summary>Where is patient data stored?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">In the MySQL database of the deployment you approve. Uploaded DICOM series are parsed in the clinician's browser and are not sent to the server; only measurements you choose to save are stored.</div></details>
+      <details><summary>Does OncoBoard store patient names?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">The case record has no field for a full name, date of birth or address. Cases carry an MRN and initials. DICOM headers and free-text fields are the two places a name could still appear, which is why we ask for de-identified exports and a local rule on free text.</div></details>
+      <details><summary>Is any data sent to an AI provider?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">Only when a clinician presses an assistant button. The server then sends the de-identified case context, or a rendered image of the current slice, to the Google Gemini API using the key your organisation configures. With no key configured, no AI request is made.</div></details>
+      <details><summary>Can clinicians type identifiers into free text?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">Yes. The clinical summary and case chat store what is typed. Your local policy should say identifiers stay out of free text, in the same way it does for email and meeting notes today.</div></details>
+      <details><summary>What does the audit log record, and what doesn't it?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">It records clinical changes and AI drafts: cases created and updated, measurements saved and deleted, sessions scheduled, votes cast, consensus signed, AI synthesis, slice reads and minutes, and new clinician accounts. It does not record who viewed a case.</div></details>
+      <details><summary>Which certifications does OncoBoard hold?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">This page describes only the controls that exist in the product today. We cover certification and assurance status in the demo, with your information governance lead in the room.</div></details>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0"><div class="wrap"><div class="mesh slim"><span class="blob" style="background:#0284C7;left:-12%;top:-30%"></span><span class="blob" style="background:#7C3AED;right:-15%;top:-25%"></span><span class="blob" style="background:#DB2777;left:28%;bottom:-55%"></span><span class="blob" style="background:#D97706;right:2%;bottom:-65%;width:36%"></span><span class="grain" aria-hidden="true"></span><div><h2>Walk your IG lead through it.</h2><p class="sub">Thirty minutes with this page, your questionnaire and a de-identified sample case.</p></div><a class="btn btn-p btn-w mag" href="contact.html">Book a Demo <span class="ar" data-i="arrow"></span></a></div></div></section>
+
+</main>
+<div id="site-footer"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
+</body></html>

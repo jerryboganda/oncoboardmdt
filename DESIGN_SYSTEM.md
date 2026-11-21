@@ -1,9 +1,10 @@
 # OncoBoard MDT — UI/UX Design System (FROZEN)
 
-**Version 1.2 · 2026-11-21 · Authority: the project owner only.**
+**Version 1.3 · 2026-11-21 · Authority: the project owner only.**
 This file is the single source of truth for every pixel, word, and motion in the app. It was extracted from the shipped code (not invented). If code and this file disagree, **this file wins for all new work**.
 *v1.1 (owner-approved): global keyboard-focus rules, semantic neutral tokens (`bg-panel`, `text-ink`, …) wired to the `index.css` variables, organ hues reserved to `organPalette.ts`, `text-[13px]` removed.*
 *v1.2 (owner decision): all linting, automated tests and the design-guard script were deleted. Every rule in this file still applies; compliance is by agent diligence plus the owner's live review (see `AGENTS.md` §1).*
+*v1.3 (owner-approved, 2026-11-21): §16 adds the marketing website (`site/`, served at `/`) as a separately scoped surface with its own bolder rules. §1–§15 still govern the clinical app (served at `/app`) unchanged.*
 
 **Audit basis:** `src/index.css`, `index.html`, `App`, `Sidebar`, `TopBar`, `ToastProvider`, `MotionPrimitives`, `organPalette`, `DashboardView`, `CommandPalette`, `NewCaseModal`, `AiAssistPanel`, `CaseDossierView` (header/tabs), `ClinicalAnalyticsView` (palette/tooltip), plus codebase-wide pattern counts across all 17 components and the reference screenshots in `.aistudio/artifacts/**` and `implementation_plan.md`.
 
@@ -343,3 +344,14 @@ Chrome (`TopBar`, `Sidebar`, toasts) carries `no-print` (`@media print { .no-pri
 - [ ] Copy follows §9; mutations fire a toast (§8.10); AI output has label + disclaimer
 - [ ] `npm run build` passes
 - [ ] Smoke-checked the changed screens in both themes and at 390×844 (or state what was not checked)
+
+## 16. Marketing website (`site/`) — separate scope (owner-approved v1.3)
+The public website at `https://mdt.polytronx.com/` is a different surface from the clinical app and deliberately bolder ("Spectrum" direction, chosen by the owner). **These rules apply only inside `site/`. Nothing here may be used in `src/` (the app), and nothing in §3–§8 restricts `site/` except where restated below.**
+
+**Source of truth:** `site/site.css` (tokens + every component) and `site/site.js` (header, footer, theme, menu, motion helpers on `window.OB`). Every page loads both; new pages copy the skeleton of an existing page and reuse its classes. Header and footer are injected by `site.js`, so navigation changes happen there once.
+
+**Allowed in `site/` only:** gradients built from the five organ hues (the "spectrum" is the brand device: hero word, progress bar, wordmark, CTA mesh); backdrop blur on the sticky nav, floating chips and the demo form; soft card shadows; pill buttons (`border-radius:999px`) and radii up to 28–40 px; display type up to 150 px; Bricolage Grotesque (display) with Public Sans (body) and JetBrains Mono (data); GSAP 3.12.5 + ScrollTrigger from cdnjs for scroll-driven motion (pins, scrubs, counters) and looping ambient motion (ribbon, mesh blobs, live dot); durations above 300 ms.
+
+**Still mandatory in `site/`:** both themes via the `site.css` tokens (light-first, `data-theme` toggle stored as `ob-b-theme`); `prefers-reduced-motion` stops all motion; the page is complete and readable without GSAP (reveals use `gsap.fromTo` with explicit end values, never leave content at opacity 0); no horizontal page scroll at 375 px (tables in `.tablewrap`); lucide-style inline icons only, no emoji; accessible names, labels and keyboard access; British clinical spelling, no exclamation marks, no invented customers, testimonials, statistics or certifications; cited sources for any research figure; patients only as MRN + initials; AI output always labelled with a disclaimer; organ hues keep their board meaning (Thoracic sky, Neuro violet, Breast pink, GI amber, Heme emerald).
+
+**Links:** the app is `/app/` ("Sign In"); site pages link with relative paths (`product.html`, `./`).

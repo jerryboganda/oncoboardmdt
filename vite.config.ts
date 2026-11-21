@@ -6,6 +6,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    // The clinical app is served at /app; the marketing site (site/) owns the root.
+    base: '/app/',
     plugins: [
       react(),
       tailwindcss(),

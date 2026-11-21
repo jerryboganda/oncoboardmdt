@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OncoBoard MDT · Tumour boards that end in a decision</title>
+<meta name="description" content="OncoBoard MDT is the live workspace for multidisciplinary tumour boards: complete dossiers, one synced DICOM view, specialty votes and a signed recommendation for every case.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+<script>try{var t=localStorage.getItem('ob-b-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<div id="site-header"></div>
+
+<main id="main" data-page="home">
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap">
+    <p class="kicker"><span class="live"><i aria-hidden="true"></i>Live tumour board workspace</span><span>Thoracic · Neuro · Breast · GI · Heme · Multi-Organ</span></p>
+    <h1 id="h1"><span class="ln"><span>Every case</span></span><span class="ln"><span>leaves the room</span></span><span class="ln"><span class="hl">decided.</span></span></h1>
+    <div class="hero-low">
+      <p class="lede">OncoBoard MDT is where multidisciplinary tumour boards prepare, review and decide. <b>The dossier is complete before the meeting. Every specialist reads the same slice during it. The signed recommendation is on file before the next case loads.</b></p>
+      <div class="hero-cta">
+        <div class="cta-row"><a class="btn btn-p mag" href="#demo">Book a Demo <span class="ar" data-i="arrow"></span></a><a class="btn btn-s" href="#workflow">Follow a Case</a></div>
+        <p class="reassure"><span><span data-i="check"></span>30 minutes, online</span><span><span data-i="check"></span>Your boards and roles</span><span><span data-i="check"></span>De-identified sample case</span></p>
+      </div>
+    </div>
+  </div>
+  <div class="ribbon-wrap" id="rw">
+    <canvas id="ribbon" aria-hidden="true"></canvas>
+    <div class="rlabel" id="rlabel" aria-hidden="true"><i class="sw" id="rsw"></i><span id="rtx"></span></div>
+    <div class="wrap" style="position:absolute;inset:0;pointer-events:none" aria-hidden="true">
+      <div style="position:relative;height:100%">
+        <div class="fl fl1" data-sp="-.22"><div class="t"><i class="sw" style="background:var(--thor)"></i>ONC-2026-4102 · Thoracic Board</div><div class="v">AJCC T2b N2 M0 · Stage IIIA</div></div>
+        <div class="fl fl2" data-sp=".16"><div class="t"><i class="sw" style="background:var(--neuro)"></i>NGS · Tier I-A</div><div class="v">EGFR p.Leu858Arg · VAF 31.8%</div></div>
+        <div class="fl fl3" data-sp="-.12"><div class="t"><i class="sw" style="background:var(--heme)"></i>Live Board Room</div><div class="v st-ok">Quorum Met · 3 specialties</div></div>
+        <div class="fl fl4" data-sp=".1"><div class="t"><i class="sw" style="background:var(--gi)"></i>RECIST 1.1 · Target 1</div><div class="v">RUL · 24.5 mm</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EVIDENCE -->
+<section class="sec" id="evidence" style="padding-top:clamp(40px,6vw,80px)">
+  <div class="evi"><div class="wrap">
+    <div class="head">
+      <div><p class="lab">Why this exists</p><h2 class="h2">Cancer care is decided in one meeting. <span class="soft">The tools in it were built for something else.</span></h2></div>
+      <p class="intro">Researchers sat in on 96 lung cancer MDT meetings across eight teams in one UK cancer network. They found inefficiencies in every one of them.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" data-n="24">24<sup>%</sup></div><p>of case discussions ended with the decision deferred, most often because results were still pending.</p></div>
+      <div class="stat"><div class="n" data-n="21">21<sup>%</sup></div><p>of meetings observed were fully quorate. Palliative care was the specialty most often missing.</p></div>
+      <div class="stat"><div class="n" data-n="60">60<sup>%</sup></div><p>of cases discussed had fitness or performance status information available, ranging from 30% to 75% by team.</p></div>
+    </div>
+    <p class="src"><span>Source: Zasada et al., <i>Cancer Medicine</i>, 2023. 8 lung MDTs, 96 meetings, 12 weeks.</span><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10166965/" target="_blank" rel="noopener">Read the study</a><a href="https://www.england.nhs.uk/publication/streamlining-mdt-meetings-guidance-cancer-alliances/" target="_blank" rel="noopener">NHS England streamlining guidance, 2020</a></p>
+
+    <div class="day">
+      <div>
+        <h3>The same board, two Tuesdays.</h3>
+        <p class="intro">NHS England's 2020 guidance asks teams to give full discussion to complex cases and manage the rest against agreed standards of care. That only works if each case arrives prepared and leaves recorded.</p>
+        <div class="tgl2" role="tablist" aria-label="Compare a board meeting"><span class="pill" aria-hidden="true"></span><button type="button" role="tab" aria-selected="true" data-m="today">Today</button><button type="button" role="tab" aria-selected="false" data-m="with">With OncoBoard</button></div>
+      </div>
+      <ol class="tl" id="tl" data-mode="today" aria-live="polite"></ol>
+    </div>
+  </div></div>
+</section>
+
+<!-- BOARDS -->
+<div class="boards" id="boards">
+  <div class="wrap head">
+    <div><p class="lab">Organ Tumour Boards</p><h2 class="h2">Six boards.<br><span class="soft">Six different questions.</span></h2></div>
+    <p class="intro">Each board opens with the imaging window, staging and markers it actually argues about. Run one board or every board, on one record per case. <a class="link" href="solutions.html">Explore every board <span data-i="arrow" style="width:15px;height:15px"></span></a></p>
+  </div>
+  <div class="wrap bnav"><span class="bcount mono" id="bcount">01 / 06</span><div class="bbar"><i id="bbar"></i></div><button class="ib" type="button" id="bprev" aria-label="Previous board"><span data-i="left"></span></button><button class="ib" type="button" id="bnext" aria-label="Next board"><span data-i="arrow"></span></button></div>
+  <div class="tw" id="tw">
+    <div class="track" id="track">
+      <article class="bd b-th"><span class="glyph" aria-hidden="true">Th</span><div class="top"><span>Thoracic Oncology</span><span>01</span></div><h3>Resect, irradiate, or target first?</h3><p>For stage III disease the answer turns on mediastinal nodes, a driver mutation and PD-L1. They sit on one screen beside the CT, already windowed for lung.</p>
+        <dl class="meta"><div><dt>Opens with</dt><dd>CT · Lung −600 / 1500</dd></div><div><dt>Staging</dt><dd>AJCC TNM · ECOG</dd></div><div><dt>Markers</dt><dd class="chips"><span>EGFR</span><span>ALK</span><span>ROS1</span><span>KRAS G12C</span><span>MET ex14</span><span>PD-L1 TPS</span></dd></div></dl></article>
+      <article class="bd b-ne"><span class="glyph" aria-hidden="true">Ne</span><div class="top"><span>Neuro Oncology</span><span>02</span></div><h3>One integrated diagnosis.</h3><p>Since WHO CNS5 in 2021, the molecular result is part of the diagnosis. Histology, IDH, 1p/19q and MGMT arrive together, so nobody decides on half a report.</p>
+        <dl class="meta"><div><dt>Opens with</dt><dd>MRI · Brain 40 / 80</dd></div><div><dt>Grading</dt><dd>WHO CNS5 integrated</dd></div><div><dt>Markers</dt><dd class="chips"><span>IDH1/2</span><span>1p/19q</span><span>MGMT</span><span>CDKN2A/B</span><span>H3 K27M</span></dd></div></dl></article>
+      <article class="bd b-br"><span class="glyph" aria-hidden="true">Br</span><div class="top"><span>Breast Oncology</span><span>03</span></div><h3>HER2-zero or HER2-low?</h3><p>Receptor status splits more ways than it used to. ER, PR, the HER2 score, Ki-67 and germline results sit next to the breast MRI before neoadjuvant or surgical options are weighed.</p>
+        <dl class="meta"><div><dt>Opens with</dt><dd>MRI · Breast</dd></div><div><dt>Staging</dt><dd>AJCC TNM · grade</dd></div><div><dt>Markers</dt><dd class="chips"><span>ER</span><span>PR</span><span>HER2 IHC/ISH</span><span>Ki-67</span><span>BRCA1/2</span><span>PIK3CA</span></dd></div></dl></article>
+      <article class="bd b-gi"><span class="glyph" aria-hidden="true">GI</span><div class="top"><span>GI Oncology</span><span>04</span></div><h3>Resectable, borderline, or not yet?</h3><p>With liver metastases the surgeon asks first. The liver window, calibrated measurements, mismatch repair status and RAS/BRAF are on screen when the question comes.</p>
+        <dl class="meta"><div><dt>Opens with</dt><dd>CT · Liver 60 / 160</dd></div><div><dt>Staging</dt><dd>AJCC TNM · CEA trend</dd></div><div><dt>Markers</dt><dd class="chips"><span>dMMR / MSI-H</span><span>KRAS</span><span>NRAS</span><span>BRAF V600E</span><span>HER2</span></dd></div></dl></article>
+      <article class="bd b-he"><span class="glyph" aria-hidden="true">He</span><div class="top"><span>Heme Oncology</span><span>05</span></div><h3>Response, risk, and the next line.</h3><p>Lymphoma boards read PET-CT against the Deauville scale. Leukaemia boards weigh ELN 2022 risk. Both get imaging, cytogenetics and molecular results in one dossier.</p>
+        <dl class="meta"><div><dt>Opens with</dt><dd>PET-CT</dd></div><div><dt>Frameworks</dt><dd>Lugano · ELN 2022</dd></div><div><dt>Markers</dt><dd class="chips"><span>Deauville 1–5</span><span>NPM1</span><span>FLT3-ITD</span><span>TP53</span><span>MYC / BCL2</span></dd></div></dl></article>
+      <article class="bd b-mo"><span class="glyph" aria-hidden="true">MO</span><div class="top"><span>Multi-Organ Board</span><span>06</span></div><h3>When the primary isn't obvious.</h3><p>Unknown primary, oligometastatic disease and second primaries need every specialty at once. The Multi-Organ board brings every preset and every marker set to one agenda.</p>
+        <dl class="meta"><div><dt>Opens with</dt><dd>Any clinical preset</dd></div><div><dt>Staging</dt><dd>Per primary</dd></div><div><dt>Markers</dt><dd class="chips"><span>All boards</span><span>NGS Tier I–III</span></dd></div></dl></article>
+    </div>
+  </div>
+</div>
+
+<!-- WORKFLOW -->
+<section class="sec" id="workflow" style="padding-top:clamp(60px,8vw,110px)">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">Workflow</p><h2 class="h2">One case.<br><span class="soft">Intake to signed.</span></h2></div><p class="intro">Follow ONC-2026-4102, a 64-year-old with right upper lobe adenocarcinoma, through a Thoracic Board. Every panel below is interactive. <a class="link" href="product.html">See the full platform <span data-i="arrow" style="width:15px;height:15px"></span></a></p></div>
+    <div class="stack">
+      <div class="sc">
+        <div><span class="num"><i style="background:var(--thor)"></i>01 · Prepare</span><h3>Register once. Arrive complete.</h3><p>The coordinator enters MRN, initials, board and urgency. TNM resolves to an AJCC stage group. Pathology, IHC, NGS and trial matches attach to the same case, so nothing is chased by email the night before.</p>
+          <ul><li><span data-i="check"></span>MRN and initials only. The case record has no field for a full name.</li><li><span data-i="check"></span>Routine, Priority and Urgent triage against a 72-hour SLA.</li></ul></div>
+        <div class="mock" aria-label="Case Registry and Patient Dossier example">
+          <div class="mock-h">Case Registry · Thoracic <small>4 of 18 cases</small></div>
+          <div class="rowx"><i class="sw" style="background:var(--thor)"></i><div style="min-width:0"><div class="m">ONC-2026-4102 · R.K.</div><div class="d">T2b N2 M0 · Stage IIIA · ECOG 1</div></div><span class="s st-warn">Priority</span></div>
+          <div class="rowx"><i class="sw" style="background:var(--thor)"></i><div style="min-width:0"><div class="m">ONC-2026-4110 · F.N.</div><div class="d">KRAS G12C · second line</div></div><span class="s st-risk">Urgent</span></div>
+          <div class="rowx"><i class="sw" style="background:var(--thor)"></i><div style="min-width:0"><div class="m">ONC-2026-4093 · S.H.</div><div class="d">ALK fusion · restaging</div></div><span class="s st-info">In Review</span></div>
+          <div class="rowx"><i class="sw" style="background:var(--thor)"></i><div style="min-width:0"><div class="m">ONC-2026-4087 · M.A.</div><div class="d">T1c N0 M0 · Stage IA3</div></div><span class="s st-ok">Consensus Reached</span></div>
+          <div class="tabs-mini" aria-hidden="true"><span class="on">Summary &amp; NGS</span><span>Pathology</span><span>Imaging</span><span>Trials</span></div>
+          <dl class="kv"><div><dt>Histology</dt><dd>Adenocarcinoma · G2</dd></div><div><dt>PD-L1</dt><dd>65% TPS</dd></div><div><dt>EGFR · Tier I-A</dt><dd>p.Leu858Arg · 31.8%</dd></div><div><dt>Trials</dt><dd><span class="st-ok">2 eligible</span> · <span class="st-warn">1 screen</span></dd></div></dl>
+        </div>
+      </div>
+
+      <div class="sc">
+        <div><span class="num"><i style="background:var(--neuro)"></i>02 · Present</span><h3>One slice on every screen.</h3><p>The radiologist drives the study. Every connected clinician follows the same slice, window and measurement in real time. Target lesions are measured once, calibrated, and saved to the case.</p>
+          <ul><li><span data-i="check"></span>Six clinical presets: lung, soft tissue, mediastinum, bone, brain, liver.</li><li><span data-i="check"></span>Upload a DICOM series or open the study already on the case.</li></ul></div>
+        <div class="mock">
+          <div class="mock-h">Live Board Room <small class="mono" id="timer">06:42</small></div>
+          <div class="ct">
+            <div class="ct-bar"><span>CT Chest · Slice 42 / 96</span><div class="seg" role="group" aria-label="Window preset"><button type="button" data-wc="-600" data-ww="1500">Lung</button><button type="button" data-wc="40" data-ww="400" aria-pressed="true">Soft Tissue</button><button type="button" data-wc="350" data-ww="1800">Bone</button></div></div>
+            <div class="ct-view" id="ctv"><canvas id="cv" width="320" height="320" role="img" aria-label="Synthetic axial chest CT with a measured right upper lobe lesion"></canvas><svg id="ov" viewBox="0 0 320 200" preserveAspectRatio="none" aria-hidden="true"></svg>
+              <div class="hud tl">WL <b id="wl">40</b> · WW <b id="ww">400</b></div><div class="hud tr">Presenter<br>Diagnostic Radiology</div><div class="hud bl" id="hu">Hover to read HU</div></div>
+          </div>
+          <div class="pres" aria-label="Connected clinicians"><span class="av" title="Medical Oncology">MO</span><span class="av" title="Surgical Oncology">SO</span><span class="av" title="Radiation Oncology">RO</span><span class="av" title="Diagnostic Radiology">DR</span><span class="av" title="Molecular Pathology">MP</span><span class="av" title="MDT Coordinator">CO</span><span class="mono" style="font-size:12px;color:var(--dim);margin-left:4px">6 connected</span></div>
+        </div>
+      </div>
+
+      <div class="sc">
+        <div><span class="num"><i style="background:var(--breast)"></i>03 · Decide</span><h3>Every specialty, on the record.</h3><p>Each specialty votes with its rationale. Quorum is met at three specialties and the whole room can see it. Dissent is kept with the case instead of disappearing with the meeting.</p>
+          <ul><li><span data-i="check"></span>Live quorum before the chair can ratify.</li><li><span data-i="check"></span>Votes stored by specialty, with time and rationale.</li></ul>
+          <button class="btn btn-s btn-sm" type="button" id="replay" style="margin-top:24px"><span data-i="replay" style="width:15px;height:15px"></span>Replay the Vote</button></div>
+        <div class="mock" id="votebox">
+          <div class="mock-h"><span>Specialty votes · ONC-2026-4102</span><div class="q"><svg class="ring" viewBox="0 0 54 54" aria-hidden="true"><circle class="tr" cx="27" cy="27" r="23"/><circle class="fg" id="ring" cx="27" cy="27" r="23"/></svg><div><div class="mono" style="font-size:18px;font-weight:600" id="qc">0 / 3</div><div style="font-size:12px;color:var(--dim)" id="ql">Specialties · Pending</div></div></div></div>
+          <div id="votes" style="display:grid;gap:8px"></div>
+        </div>
+      </div>
+
+      <div class="sc">
+        <div><span class="num"><i style="background:var(--heme)"></i>04 · Record</span><h3>Signed before the next case loads.</h3><p>AI drafts the minutes from the votes and discussion. The chair edits, signs off and exports the consensus report for the EHR. Each step is written to the audit log with who and when.</p>
+          <ul><li><span data-i="check"></span>AI drafts are labelled and need a human sign-off.</li><li><span data-i="check"></span>Consensus report exported per case.</li></ul></div>
+        <div class="mock" id="recbox" style="min-height:400px">
+          <div class="doc">
+            <div class="ai"><span data-i="sparkles"></span>AI-Drafted Minutes · edited by Chair</div>
+            <p><b>Case.</b> 64-year-old, right upper lobe adenocarcinoma, AJCC T2b N2 M0, Stage IIIA, ECOG 1. EGFR p.Leu858Arg, PD-L1 65% TPS.</p>
+            <p><b>Recommendation.</b> Multistation N2, not for upfront resection. Concurrent chemoradiation, then osimertinib consolidation. Restage CT at 12 weeks.</p>
+            <p><b>Votes.</b> 5 of 5 specialties in favour. No dissent recorded.</p>
+            <p class="disc">AI decision support. Review and edit before ratifying.</p>
+            <div><button class="btn-pos" type="button" id="sign"><span data-i="check"></span>Sign Off &amp; Ratify MDT Consensus</button></div>
+          </div>
+          <div class="toast" id="toast" role="status"><span data-i="check"></span><div><b>Consensus signed and exported</b><span>ONC-2026-4102_MDT_Consensus_Report.txt</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROLES -->
+<section class="sec" id="roles" style="padding-top:0">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">Roles</p><h2 class="h2">Built for every<br><span class="soft">seat at the table.</span></h2></div><p class="intro">Six specialties come to a tumour board with six different jobs. OncoBoard gives each one the view it needs, on the same case.</p></div>
+    <div class="roles">
+      <div class="rtabs" role="tablist" aria-label="Roles" id="rtabs"><span class="ind" id="rind" aria-hidden="true"></span></div>
+      <div class="rpanel" role="tabpanel" id="rpanel" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- AI -->
+<section class="sec aisec" id="ai">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">AI Decision Support</p><h2 class="h2">AI drafts.<br><span class="soft">Clinicians decide.</span></h2></div><p class="intro">Four assistants do the reading and writing a board never has time for. None of them can vote, sign off or change the record. <a class="link" href="product.html#ai">How the AI works <span data-i="arrow" style="width:15px;height:15px"></span></a></p></div>
+    <div class="ai-grid">
+      <div>
+        <div class="tools">
+          <div class="tool"><span class="ic"><span data-i="doc"></span></span><div><h3>Case synthesis</h3><p>A one-page brief of staging, pathology, molecular drivers and open questions, ready before the meeting starts.</p></div></div>
+          <div class="tool"><span class="ic"><span data-i="scan"></span></span><div><h3>Slice read</h3><p>A structured read of the current DICOM slice as a second look for the radiologist, never a replacement.</p></div></div>
+          <div class="tool"><span class="ic"><span data-i="sparkles"></span></span><div><h3>Consensus minutes</h3><p>Minutes drafted from the votes and discussion for the chair to edit and sign.</p></div></div>
+          <div class="tool"><span class="ic"><span data-i="chat"></span></span><div><h3>Case copilot</h3><p>Plain-language questions answered from the dossier in front of the board.</p></div></div>
+        </div>
+        <div class="guard">
+          <div><span data-i="shield"></span>Every output labelled "AI Decision Support"</div>
+          <div><span data-i="shield"></span>Every output ends with a disclaimer</div>
+          <div><span data-i="shield"></span>Cannot vote, sign off or edit the record</div>
+          <div><span data-i="shield"></span>Prompted with the case dossier only</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="chat-h"><b><span data-i="sparkles"></span>Case Copilot</b><small>ONC-2026-4102 · Thoracic Board</small></div>
+        <div class="log" id="log" aria-live="polite"></div>
+        <div class="qchips" id="qchips"></div>
+        <p class="disc">AI decision support. Verify against source records before use.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ANALYTICS -->
+<section class="sec" id="analytics">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">Clinical Analytics</p><h2 class="h2">Know how long<br><span class="soft">a decision takes.</span></h2></div><p class="intro">Turnaround from intake to consensus, by board and by urgency, against your SLA. Export any view as CSV for the governance meeting. <a class="link" href="product.html#analytics">Analytics in detail <span data-i="arrow" style="width:15px;height:15px"></span></a></p></div>
+    <div class="an">
+      <div class="kpis">
+        <div class="kpi"><div class="l"><i class="sw" style="background:var(--dim)"></i>Cases this quarter</div><div class="v" data-k="148">148</div><div class="c">Across six boards</div></div>
+        <div class="kpi"><div class="l"><i class="sw" style="background:var(--accent)"></i>Intake to consensus</div><div class="v"><span data-k="52">52</span><small>h avg</small></div><div class="c">Target 72 h</div></div>
+        <div class="kpi"><div class="l"><i class="sw" style="background:var(--risk)"></i>Urgent turnaround</div><div class="v"><span data-k="31">31</span><small>h avg</small></div><div class="c">Urgent triage only</div></div>
+        <div class="kpi"><div class="l"><i class="sw" style="background:var(--heme)"></i>Consensus Reached</div><div class="v"><span data-k="91">91</span><small>%</small></div><div class="c">Of cases discussed</div></div>
+      </div>
+      <div class="chart">
+        <div class="chart-h"><div><h3>Average turnaround by board</h3><p>Hours from intake to Consensus Reached</p></div><div class="segc" role="tablist" aria-label="Case filter" id="segc"><span class="pill" aria-hidden="true"></span><button type="button" role="tab" aria-selected="true" data-f="all">All Cases</button><button type="button" role="tab" aria-selected="false" data-f="urgent">Urgent Triage</button></div></div>
+        <div class="plot" role="img" aria-label="Bar chart of average turnaround by board against a 72 hour SLA, example data">
+          <div class="yax"><span style="bottom:0">0</span><span style="bottom:25%">25</span><span style="bottom:50%">50</span><span style="bottom:75%">75</span><span style="bottom:100%">100</span></div>
+          <div class="area"><span class="grid-l" style="bottom:25%"></span><span class="grid-l" style="bottom:50%"></span><span class="grid-l" style="bottom:75%"></span><span class="grid-l" style="bottom:100%"></span><span class="sla" style="bottom:72%"><span>SLA 72 h</span></span><div class="bars" id="bars"></div></div>
+        </div>
+        <div class="xax"><span></span><div id="xax"></div></div>
+        <p class="note-ex">Example data for illustration.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section class="sec" id="trust" style="padding-top:0">
+  <div class="wrap">
+    <div class="head"><div><p class="lab">Security &amp; governance</p><h2 class="h2">Patient data,<br><span class="soft">handled like it matters.</span></h2></div><p class="intro">Your information governance team will ask these questions first. Here are the answers. <a class="link" href="security.html">Read the security overview <span data-i="arrow" style="width:15px;height:15px"></span></a></p></div>
+    <div class="trust">
+      <div class="ti"><span class="ic"><span data-i="user"></span></span><h3>De-identified by design</h3><p>Cases carry an MRN and initials. The case record has no field for a full name, date of birth or address.</p><p class="spec">ONC-2026-4102 · R.K.</p></div>
+      <div class="ti"><span class="ic"><span data-i="key"></span></span><h3>Hashed credentials</h3><p>Passwords are salted per user, hashed with scrypt and compared in constant time.</p><p class="spec">scrypt · 16-byte salt · 64-byte key</p></div>
+      <div class="ti"><span class="ic"><span data-i="clock"></span></span><h3>Short-lived sessions</h3><p>Sessions expire after 12 hours and are revoked at sign-out.</p><p class="spec">256-bit random bearer token</p></div>
+      <div class="ti"><span class="ic"><span data-i="list"></span></span><h3>Everything on the record</h3><p>Registrations, measurements, votes and sign-offs write to an audit log with who did what and when.</p><p class="spec">Audit & Database view for IT</p></div>
+      <div class="ti"><span class="ic"><span data-i="sparkles"></span></span><h3>AI inside clear limits</h3><p>Assistants draft and answer. Only a clinician can vote, ratify or edit the record.</p><p class="spec">Labelled · disclaimed · human sign-off</p></div>
+      <div class="ti"><span class="ic"><span data-i="server"></span></span><h3>Runs where you choose</h3><p>OncoBoard runs on Node.js and MySQL, so it can be deployed on infrastructure your governance team approves.</p><p class="spec">Node.js · MySQL · WebSocket sync</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sec" id="faq" style="padding-top:0">
+  <div class="wrap faq">
+    <div><p class="lab">FAQ</p><h2 class="h2">Asked in<br><span class="soft">every demo.</span></h2></div>
+    <div class="faq-list">
+      <details open><summary>Does OncoBoard replace our PACS?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">No. It reads DICOM in the browser for board review: windowing, slice navigation and calibrated measurements. Primary diagnostic reporting stays on your PACS workstation.</div></details>
+      <details><summary>We already meet on Teams or Zoom. Do we stop?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">Keep your call for audio and video. OncoBoard handles what a screen share can't: one synced slice for everyone, the dossier, the votes and the signed record.</div></details>
+      <details><summary>Do patient names ever enter the system?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">Cases are identified by MRN and initials, and the case record has no field for a full name. Uploaded DICOM files are read in your browser and not sent to the server, but their headers can still carry a name, so upload de-identified exports.</div></details>
+      <details><summary>Can the AI make or change a decision?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">No. Every AI output is labelled and ends with a disclaimer. The assistants draft summaries, slice reads and minutes, and answer questions. Voting, ratifying and editing the record are clinician actions only.</div></details>
+      <details><summary>What is on record after a case is discussed?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">Each specialty's vote with its rationale, the ratified recommendation, the minutes, any RECIST measurements and an audit trail. The consensus report exports per case for your EHR.</div></details>
+      <details><summary>How does the demo work?<span class="pl" aria-hidden="true"><span data-i="plus"></span></span></summary><div class="ans">Thirty minutes, online. We set up your boards and roles in a sandbox and run a de-identified sample case from intake to a signed consensus report, with your team driving.</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="sec" id="demo" style="padding-top:0">
+  <div class="wrap">
+    <div class="mesh" id="mesh">
+      <span class="blob" style="background:#0284C7;left:-12%;top:-30%"></span><span class="blob" style="background:#7C3AED;right:-15%;top:-25%"></span><span class="blob" style="background:#DB2777;left:28%;bottom:-55%"></span><span class="blob" style="background:#D97706;right:2%;bottom:-65%;width:36%"></span><span class="grain" aria-hidden="true"></span>
+      <div>
+        <h2>Bring one real board. We'll run it with you.</h2>
+        <p class="sub">A 30-minute session, online, with the people who sit on your board.</p>
+        <ol><li><span>01</span>We set up your boards, roles and clinicians in a sandbox.</li><li><span>02</span>Your coordinator registers a de-identified sample case.</li><li><span>03</span>Your team presents, votes and signs it off, live.</li></ol>
+      </div>
+      <form class="dform" id="form" novalidate>
+        <div id="fields" style="display:grid;gap:14px">
+          <label for="f-email">Work email<input id="f-email" type="email" required autocomplete="email" placeholder="name@hospital.org"></label>
+          <label for="f-role">Your role<select id="f-role"><option>MDT Coordinator</option><option>Board Chair</option><option>Medical Oncology</option><option>Surgical Oncology</option><option>Radiation Oncology</option><option>Diagnostic Radiology</option><option>Molecular Pathology</option><option>Cancer Services or IT</option></select></label>
+          <fieldset><legend>Boards you run</legend><div class="bchips" id="bchips"></div></fieldset>
+          <p class="err" id="err" role="alert">Enter a work email so we can arrange the session.</p>
+          <button class="btn btn-p mag" type="submit">Book a Demo <span class="ar" data-i="arrow"></span></button>
+          <p class="prev">Design preview. Submitting here sends nothing.</p>
+        </div>
+        <div class="done" id="done" role="status"><span data-i="check" style="width:28px;height:28px;color:#34D399"></span><h3>Request recorded.</h3><p id="done-t"></p><p class="prev">Design preview. Nothing was sent.</p></div>
+      </form>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
+<script>
+const {svg,paintIcons,$,$$,RM,FINE,root,G,placePill}=OB;
+
+/* ribbon: five organ bands that flow, bend toward the pointer and name themselves on hover */
+const BOARDS=[['--thor','Thoracic Oncology'],['--neuro','Neuro Oncology'],['--breast','Breast Oncology'],['--gi','GI Oncology'],['--heme','Heme Oncology']];
+let HUES=[];function readHues(){const cs=getComputedStyle(root);HUES=BOARDS.map(b=>cs.getPropertyValue(b[0]).trim())}
+const cv=$('#ribbon'),c=cv.getContext('2d'),rw=$('#rw'),rl=$('#rlabel');let w,h,dpr,mx=.5,my=.5,tmx=.5,tmy=.5,tm=0,hot=-1,hov=false;
+function size(){dpr=Math.min(devicePixelRatio||1,2);w=cv.clientWidth;h=cv.clientHeight;cv.width=w*dpr;cv.height=h*dpr;c.setTransform(dpr,0,0,dpr,0,0)}
+const bandY=(b,u,pass)=>{const bw=h/9,pull=Math.exp(-((u-mx)**2)/.025)*(my-.5)*h*(hov?.55:.2);return h*.5+Math.sin(u*4.6+tm*.9+b*.5)*h*.17+Math.sin(u*10.5-tm*.55+b*1.3)*h*.035+(b-2)*bw*.95+pull+(pass?bw*.78:0)};
+function draw(){
+  c.clearRect(0,0,w,h);
+  BOARDS.forEach((_,b)=>{c.beginPath();const S=90;
+    for(let s=0;s<=S;s++){const u=s/S;s?c.lineTo(u*w,bandY(b,u,0)):c.moveTo(0,bandY(b,0,0))}
+    for(let s=S;s>=0;s--){const u=s/S;c.lineTo(u*w,bandY(b,u,1))}
+    c.closePath();c.fillStyle=HUES[b];c.globalAlpha=hot<0?.94:(hot===b?1:.28);c.fill()});
+  c.globalAlpha=1;
+}
+function hit(px,py){const u=px/w;for(let b=0;b<5;b++){const a=bandY(b,u,0),z=bandY(b,u,1);if(py>=Math.min(a,z)&&py<=Math.max(a,z))return b}return -1}
+rw.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect();if(e.clientY<r.top||e.clientY>r.bottom)return;hov=true;tmx=(e.clientX-r.left)/r.width;tmy=(e.clientY-r.top)/r.height;
+  if(FINE){const b=hit(e.clientX-r.left,e.clientY-r.top);hot=b;if(b>=0){$('#rtx').textContent=BOARDS[b][1];$('#rsw').style.background=HUES[b];rl.style.left=(e.clientX-r.left)+'px';rl.style.top=(e.clientY-r.top+(cv.offsetTop))+'px';rl.classList.add('on')}else rl.classList.remove('on')}});
+rw.addEventListener('pointerleave',()=>{hov=false;hot=-1;tmx=.5;tmy=.5;rl.classList.remove('on')});
+readHues();size();addEventListener('resize',size);OB.onTheme(readHues);
+let ribbonOn=true;new IntersectionObserver(es=>{ribbonOn=es[0].isIntersecting}).observe(cv);
+(function loop(){if(ribbonOn||RM){mx+=(tmx-mx)*.08;my+=(tmy-my)*.08;draw();if(!RM)tm+=.011}if(!RM)requestAnimationFrame(loop)})();
+
+/* evidence: two Tuesdays */
+const DAY={today:[['Mon 23:40','The NGS report lands as a PDF. The coordinator forwards it to four people and hopes someone opens it.'],['Tue 07:31','Radiology shares a screen. Fourteen people watch one cursor.'],['07:44','"Can you go back two slices?" The window resets. The measurement is read out loud.'],['07:52','Performance status isn\'t in the notes. The case is deferred to next week.'],['Wed 16:10','Minutes are typed up from handwritten notes. The surgeon\'s dissent doesn\'t make it in.']],
+ with:[['Mon 23:40','NGS variants attach to the case with tier, VAF and actionable therapy, next to pathology and staging.'],['Tue 07:31','The radiologist presents. Every connected screen follows the same slice and window.'],['07:44','Target lesion 1 is measured once, calibrated, and saved to the case at 24.5 mm.'],['07:52','ECOG 1 is already in the dossier. Specialties vote. Quorum is met at three.'],['07:56','The chair signs off. Minutes are drafted, edited and exported before the next case loads.']]};
+const tl=$('#tl'),tbtn=$$('.tgl2 button'),tpill=$('.tgl2 .pill');
+function setDay(m,anim){tbtn.forEach(b=>b.setAttribute('aria-selected',b.dataset.m===m));placePill(tpill,tbtn.find(b=>b.dataset.m===m));tl.dataset.mode=m;
+  tl.innerHTML=DAY[m].map(r=>`<li><span class="tm">${r[0]}</span><span class="tx">${r[1]}</span></li>`).join('');
+  if(anim&&G)gsap.from('#tl li',{y:14,opacity:0,duration:.5,stagger:.06,ease:'power3.out'})}
+tbtn.forEach(b=>b.onclick=()=>setDay(b.dataset.m,true));
+setDay('today');
+
+/* boards: pinned horizontal on desktop, native swipe on touch */
+const tw=$('#tw'),track=$('#track'),cards=$$('.bd'),bcount=$('#bcount'),bbar=$('#bbar'),bprev=$('#bprev'),bnext=$('#bnext');let bIdx=0,pinST=null;
+function setB(i){bIdx=Math.max(0,Math.min(5,i));bcount.textContent=String(bIdx+1).padStart(2,'0')+' / 06';bbar.style.transform=`scaleX(${(bIdx+1)/6})`;bprev.disabled=bIdx===0;bnext.disabled=bIdx===5}
+tw.addEventListener('scroll',()=>{if(pinST)return;const mid=tw.scrollLeft+tw.clientWidth/2;let best=0,bd=1e9;cards.forEach((cd,i)=>{const d=Math.abs(cd.offsetLeft+cd.offsetWidth/2-mid);if(d<bd){bd=d;best=i}});setB(best)},{passive:true});
+function goB(i){i=Math.max(0,Math.min(5,i));if(pinST){const y=pinST.start+(pinST.end-pinST.start)*(i/5);scrollTo({top:y,behavior:RM?'auto':'smooth'})}else tw.scrollTo({left:cards[i].offsetLeft-(tw.clientWidth-cards[i].offsetWidth)/2,behavior:RM?'auto':'smooth'})}
+bprev.onclick=()=>goB(bIdx-1);bnext.onclick=()=>goB(bIdx+1);setB(0);
+
+/* synthetic CT: Hounsfield field built once, windowed live */
+const N=320,hu=new Float32Array(N*N);
+(function(){let s=11;const rnd=()=>(s=(s*16807)%2147483647)/2147483647;const ves=[];for(let i=0;i<60;i++)ves.push([rnd()*2-1,rnd()*2-1,.004+rnd()*.011]);
+ const E=(x,y,a,b,rx,ry)=>((x-a)/rx)**2+((y-b)/ry)**2;
+ for(let j=0;j<N;j++)for(let i=0;i<N;i++){const x=i/N*2-1,y=j/N*2-1;let v=-1000;const bo=E(x,y,0,.02,.9,.66);
+  if(bo<1){v=bo>.8?-95:42;const rib=E(x,y,0,.02,.78,.56);if(rib>.86&&rib<.95&&Math.sin(Math.atan2(y,x)*11)>.35)v=620;
+   if(E(x,y,-.37,-.03,.29,.43)<1||E(x,y,.38,-.03,.27,.41)<1){v=-860;for(const q of ves){const d=(x-q[0])**2+(y-q[1])**2;if(d<q[2]*q[2]*4)v=-200+(1-d/(q[2]*q[2]*4))*220}}
+   if(E(x,y,.07,.12,.21,.19)<1)v=46;if(E(x,y,-.03,-.2,.07,.07)<1)v=160;if(E(x,y,0,-.56,.06,.035)<1)v=520;const sp=E(x,y,0,.5,.11,.1);if(sp<1)v=sp<.45?240:680}
+  const dx=x+.42,dy=y+.18,r=Math.hypot(dx,dy),a=Math.atan2(dy,dx),R0=.068*(1+.12*Math.sin(a*7)+.06*Math.sin(a*13));if(r<R0)v=34;else if(r<R0*1.6&&Math.abs(Math.sin(a*9))>.93)v=-120;
+  hu[j*N+i]=v+(rnd()-.5)*34}})();
+const ccv=$('#cv'),cx2=ccv.getContext('2d'),img=cx2.createImageData(N,N),W={wc:40,ww:400};
+function renderCT(){const lo=W.wc-W.ww/2,d=img.data;for(let k=0;k<N*N;k++){let g=(hu[k]-lo)/W.ww;g=g<0?0:g>1?1:g;g=g*255|0;const p=k*4;d[p]=g;d[p+1]=g;d[p+2]=Math.min(255,g+6);d[p+3]=255}cx2.putImageData(img,0,0);$('#wl').textContent=Math.round(W.wc);$('#ww').textContent=Math.round(W.ww)}
+renderCT();
+// canvas is object-fit:cover in a 16:10 box: overlay maps the central band of the square
+const Lc=[(1-.42)/2*N,(1-.18)/2*N-60];
+$('#ov').innerHTML=`<g stroke="#38BDF8" stroke-width="1.4" fill="none" vector-effect="non-scaling-stroke"><circle cx="${Lc[0]}" cy="${Lc[1]}" r="20" stroke-dasharray="3 3" opacity=".75" vector-effect="non-scaling-stroke"/><line id="cal" x1="${Lc[0]-11}" y1="${Lc[1]-3}" x2="${Lc[0]+11}" y2="${Lc[1]+3}" vector-effect="non-scaling-stroke"/></g><g><rect x="${Lc[0]+24}" y="${Lc[1]-30}" width="78" height="17" rx="3" fill="#05070B" stroke="#1E293B"/><text x="${Lc[0]+30}" y="${Lc[1]-18}" fill="#38BDF8" font-family="JetBrains Mono, monospace" font-size="10">24.5 mm</text></g>`;
+const ctv=$('#ctv'),huEl=$('#hu');
+ctv.addEventListener('pointermove',e=>{const r=ctv.getBoundingClientRect(),i=((e.clientX-r.left)/r.width*N)|0,j=(((e.clientY-r.top)/r.height)*200+60)|0;if(i<0||j<0||i>=N||j>=N)return;huEl.innerHTML=`<b>${Math.round(hu[j*N+i])} HU</b> · x ${i} y ${j}`});
+ctv.addEventListener('pointerleave',()=>huEl.textContent='Hover to read HU');
+const segB=$$('.seg button');segB.forEach(b=>b.onclick=()=>{segB.forEach(x=>x.setAttribute('aria-pressed',x===b));const t={wc:+b.dataset.wc,ww:+b.dataset.ww};if(G)gsap.to(W,{...t,duration:.7,ease:'power3.out',onUpdate:renderCT});else{Object.assign(W,t);renderCT()}});
+let sec=402;setInterval(()=>{sec++;$('#timer').textContent=String(sec/60|0).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')},1000);
+
+/* votes */
+const V=[['Medical Oncology','Chemoradiation, then osimertinib','EGFR L858R, unresectable N2'],['Radiation Oncology','Chemoradiation, then osimertinib','60 Gy in 30 fractions, concurrent'],['Surgical Oncology','Agree','Multistation N2, not for upfront resection'],['Diagnostic Radiology','Agree','Restage CT at 12 weeks'],['Molecular Pathology','Agree','EGFR p.Leu858Arg, Tier I-A']];
+const vbox=$('#votes'),ring=$('#ring');let vt=[];
+function resetVotes(){vt.forEach(clearTimeout);vt=[];vbox.innerHTML=V.map(v=>`<div class="vrow"><span>${v[0]}<span class="r">Awaiting vote</span></span><span class="s">Pending</span></div>`).join('');ring.style.strokeDashoffset=145;$('#qc').textContent='0 / 3';$('#ql').textContent='Specialties · Pending'}
+function runVotes(){resetVotes();const rows=[...vbox.children];rows.forEach((r,i)=>vt.push(setTimeout(()=>{r.classList.add('done','pop');setTimeout(()=>r.classList.remove('pop'),300);r.querySelector('.r').textContent=V[i][2];r.querySelector('.s').textContent=V[i][1];const n=Math.min(i+1,3);ring.style.strokeDashoffset=145-145*n/3;$('#qc').textContent=n+' / 3';$('#ql').textContent=i>=2?'Specialties · Quorum Met':'Specialties · Pending'},RM?0:500+i*620)))}
+$('#replay').onclick=runVotes;resetVotes();
+new IntersectionObserver((es,o)=>{if(es[0].isIntersecting){runVotes();o.disconnect()}},{threshold:.5}).observe($('#votebox'));
+
+/* record: sign-off toast */
+const toast=$('#toast');let tt;
+function showToast(){toast.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('on'),4200)}
+$('#sign').onclick=showToast;
+new IntersectionObserver((es,o)=>{if(es[0].isIntersecting){setTimeout(showToast,900);o.disconnect()}},{threshold:.6}).observe($('#recbox'));
+
+/* roles */
+const ROLES=[
+ ['Chair','Board Chair','Run the agenda, not the software.','You keep the meeting moving and own the final call. OncoBoard keeps time, shows quorum and turns your sign-off into a filed report.',['A live agenda with a timer on every case','Quorum visible to the room before you ratify','One sign-off that produces the consensus report'],['Board Schedule','Live Board Room','Sign Off & Ratify']],
+ ['Coordinator','MDT Coordinator','Stop chasing results the night before.','You build the list, find the missing reports and write the outcomes. OncoBoard puts each case, its status and its gaps in one registry.',['Case Registry by board, urgency and status','Urgent cases tracked against a 72-hour SLA','Schedule a session, queue cases, go live, close it'],['Case Registry','New Patient Case','Board Schedule']],
+ ['Radiology','Diagnostic Radiology','Present the study. Stop sharing your screen.','You drive the images while everyone else asks for the next slice. In OncoBoard the whole room follows your slice and window as you move.',['Slice, window and measurements synced to every screen','Calibrated measurements saved as RECIST lesions','AI slice read as a labelled second look'],['DICOM Studio','Window presets','RECIST 1.1']],
+ ['Pathology','Molecular Pathology','Your report, read the way you wrote it.','Your findings decide the options, but they often arrive as a pasted paragraph. OncoBoard keeps them structured and next to the image.',['Histology, grade, margins and IHC as structured fields','NGS variants with VAF, tier and actionable therapy','Trial matches flagged Eligible, Screen Required or Ineligible'],['Pathology panel','NGS tiers I-A to III','Trial matching']],
+ ['Oncology','Medical & Radiation Oncology','Decide on the whole picture.','You weigh systemic and radiation options against staging, drivers and history. OncoBoard brings them onto one page and records your vote with its reasoning.',['Staging, molecular drivers and treatment history together','Case copilot answers from the dossier','Your vote and rationale stored with the case'],['Patient Dossier','Case Copilot','Specialty voting']],
+ ['Surgery','Surgical Oncology','Answer the resectability question with the image open.','The board often waits on your judgement. OncoBoard gives you the same slice, window and measurement as the room, and records any dissent.',['The same synced slice and measurements as the room','Vote and dissent kept on the record','Turnaround analytics for your board'],['Synced DICOM','Dissent on record','Clinical Analytics']]];
+const rtabs=$('#rtabs'),rpanel=$('#rpanel'),rind=$('#rind');
+rtabs.insertAdjacentHTML('beforeend',ROLES.map((r,i)=>`<button type="button" role="tab" id="rt${i}" aria-controls="rpanel" aria-selected="${i===0}" tabindex="${i===0?0:-1}">${r[0]}<small>${String(i+1).padStart(2,'0')}</small></button>`).join(''));
+const rbtn=$$('#rtabs button');
+function setRole(i,anim){rbtn.forEach((b,k)=>{b.setAttribute('aria-selected',k===i);b.tabIndex=k===i?0:-1});const b=rbtn[i];rind.style.height=b.offsetHeight+'px';rind.style.transform=`translateY(${b.offsetTop}px)`;rpanel.setAttribute('aria-labelledby','rt'+i);
+  const r=ROLES[i];rpanel.innerHTML=`<p class="who">${r[1]}</p><h3>${r[2]}</h3><p>${r[3]}</p><ul>${r[4].map((x,k)=>`<li><span class="k">0${k+1}</span><span>${x}</span></li>`).join('')}</ul><p class="sees">${r[5].map(x=>`<span>${x}</span>`).join('')}</p>`;
+  if(anim&&G)gsap.from(rpanel.children,{y:16,opacity:0,duration:.5,stagger:.05,ease:'power3.out'})}
+rbtn.forEach((b,i)=>{b.onclick=()=>setRole(i,true);b.onkeydown=e=>{const k={ArrowDown:1,ArrowRight:1,ArrowUp:-1,ArrowLeft:-1}[e.key];if(k){e.preventDefault();const n=(i+k+6)%6;rbtn[n].focus();setRole(n,true)}}});
+setRole(0);
+
+/* AI copilot */
+const QA=[
+ ['Does LAURA apply to this patient?','Likely, if the board confirms the disease is unresectable. LAURA enrolled unresectable stage III NSCLC with EGFR exon 19 deletion or L858R and no progression after chemoradiation. This patient has p.Leu858Arg and AJCC T2b N2 M0. Median progression-free survival was 39.1 months with osimertinib against 5.6 months with placebo. Confirm no progression on the post-chemoradiation CT.','Lu et al., NEJM 2024 · doi:10.1056/NEJMoa2402614'],
+ ['Which lesion should be RECIST target 1?','The spiculated right upper lobe mass, 24.5 mm long axis on slice 42. It is measurable (at least 10 mm) and reproducible. Measure the subcarinal node on its short axis: a node needs 15 mm or more to be a target lesion.','RECIST 1.1 · Eisenhauer et al., Eur J Cancer 2009'],
+ ['Summarise this case for the surgeon','64-year-old, right upper lobe adenocarcinoma, T2b N2 M0, Stage IIIA, ECOG 1. EGFR p.Leu858Arg, PD-L1 65% TPS. The open question is whether the N2 disease is resectable. If it is not, the board is leaning towards chemoradiation followed by osimertinib.','From the Patient Dossier · ONC-2026-4102']];
+const log=$('#log'),qc=$('#qchips');let typing;
+qc.innerHTML=QA.map((q,i)=>`<button type="button" data-q="${i}" aria-pressed="${i===0}">${q[0]}</button>`).join('');
+const bubbles=(i,ans)=>`<div class="bub u"><span class="who">Medical Oncology</span>${QA[i][0]}</div><div class="bub a"><span class="who"><span data-i="sparkles"></span>AI Decision Support</span><span id="ans">${ans}</span><cite id="cite" style="${ans?'':'opacity:0'}">${QA[i][2]}</cite></div>`;
+function ask(i){clearInterval(typing);$$('#qchips button').forEach((b,k)=>b.setAttribute('aria-pressed',k===i));
+  if(RM){log.innerHTML=bubbles(i,QA[i][1]);paintIcons(log);return}
+  log.innerHTML=bubbles(i,'<span class="thinking" aria-label="Thinking"><i></i><i></i><i></i></span>');paintIcons(log);
+  if(G)gsap.from('#log .bub',{y:12,opacity:0,duration:.4,stagger:.12,ease:'power3.out'});
+  setTimeout(()=>{const el=$('#ans'),a=QA[i][1];let k=0;typing=setInterval(()=>{k+=3;el.textContent=a.slice(0,k);if(k>=a.length){clearInterval(typing);el.textContent=a;const ci=$('#cite');ci.style.transition='opacity .4s';ci.style.opacity=1}},16)},900)}
+$$('#qchips button').forEach(b=>b.onclick=()=>ask(+b.dataset.q));
+log.innerHTML=bubbles(0,QA[0][1]);paintIcons(log);
+
+/* analytics */
+const AB=[['Thoracic','--thor',54,30],['Neuro','--neuro',81,44],['Breast','--breast',38,22],['GI','--gi',63,36],['Heme','--heme',47,26],['Multi-Organ','--accent',69,41]];
+$('#bars').innerHTML=AB.map(b=>`<div class="bar"><i style="background:var(${b[1]});transform:scaleY(${b[2]/100})"></i><b style="bottom:${b[2]}%">${b[2]} h</b></div>`).join('');
+$('#xax').innerHTML=AB.map(b=>`<span><i class="sw" style="background:var(${b[1]})"></i>${b[0]}</span>`).join('');
+const segc=$$('#segc button'),spill=$('#segc .pill');
+function setF(f){segc.forEach(b=>b.setAttribute('aria-selected',b.dataset.f===f));placePill(spill,segc.find(b=>b.dataset.f===f));
+  $$('#bars .bar').forEach((el,i)=>{const v=AB[i][f==='all'?2:3];el.querySelector('i').style.transform=`scaleY(${v/100})`;const lb=el.querySelector('b');lb.style.bottom=v+'%';lb.textContent=v+' h';lb.classList.toggle('breach',v>72)})}
+segc.forEach(b=>b.onclick=()=>setF(b.dataset.f));
+const layoutPills=()=>{placePill(tpill,tbtn.find(b=>b.getAttribute('aria-selected')==='true'));placePill(spill,segc.find(b=>b.getAttribute('aria-selected')==='true'));setRole(rbtn.findIndex(b=>b.getAttribute('aria-selected')==='true'))};
+setF('all');addEventListener('resize',layoutPills);
+if(!RM)new IntersectionObserver((es,o)=>{if(!es[0].isIntersecting)return;o.disconnect();const bi=$$('#bars .bar i'),bl=$$('#bars .bar b');bi.forEach(e=>{e.style.transition='none';e.style.transform='scaleY(0)'});bl.forEach(e=>{e.style.transition='none';e.style.bottom='0%'});void document.body.offsetHeight;bi.forEach((e,i)=>e.style.transition=`transform .9s cubic-bezier(.2,.9,.2,1) ${i*70}ms`);bl.forEach((e,i)=>e.style.transition=`bottom .9s cubic-bezier(.2,.9,.2,1) ${i*70}ms`);setF($('#segc [aria-selected="true"]').dataset.f)},{threshold:.4}).observe($('.chart'));document.fonts&&document.fonts.ready.then(layoutPills);
+
+/* demo form */
+const BCH=[['Thoracic','--thor'],['Neuro','--neuro'],['Breast','--breast'],['GI','--gi'],['Heme','--heme'],['Multi-Organ','--accent']];
+$('#bchips').innerHTML=BCH.map((b,i)=>`<button type="button" aria-pressed="${i===0}"><i class="sw" style="background:var(${b[1]})"></i>${b[0]}</button>`).join('');
+$$('#bchips button').forEach(b=>b.onclick=()=>b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true'));
+$('#form').addEventListener('submit',e=>{e.preventDefault();const em=$('#f-email');if(!em.checkValidity()||!em.value){$('#err').style.display='block';em.focus();return}$('#err').style.display='none';
+  const bs=$$('#bchips button[aria-pressed="true"]').map(b=>b.textContent);
+  $('#done-t').textContent=`${$('#f-role').value} walkthrough, set up for ${bs.length?bs.join(', '):'your boards'}. We'd confirm a time by email at ${em.value}.`;
+  $('#fields').style.display='none';$('#done').classList.add('on');paintIcons($('#done'));if(G)gsap.from('#done>*',{y:16,opacity:0,duration:.5,stagger:.07,ease:'power3.out'})});
+
+/* GSAP choreography; without it the page is complete and static */
+if(G){
+  gsap.registerPlugin(ScrollTrigger);
+  document.fonts&&document.fonts.ready.then(()=>ScrollTrigger.refresh());
+  const tl0=gsap.timeline({defaults:{ease:'expo.out'}});
+  tl0.from('#h1 .ln>span',{yPercent:108,duration:1.25,stagger:.11})
+     .from('.kicker',{y:14,opacity:0,duration:.8},.15)
+     .from('.hero-low>*',{y:24,opacity:0,duration:1,stagger:.1},.55)
+     .from('#ribbon',{opacity:0,scaleY:.4,transformOrigin:'50% 50%',duration:1.4},.35)
+     .from('.fl',{y:30,opacity:0,scale:.92,duration:1,stagger:.1,ease:'back.out(1.5)'},.9);
+  $$('.fl').forEach(f=>gsap.to(f,{y:()=>innerHeight*+f.dataset.sp,ease:'none',scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}}));
+  gsap.from('.evi',{scale:.94,borderRadius:'60px',duration:1,ease:'none',scrollTrigger:{trigger:'#evidence',start:'top bottom',end:'top 30%',scrub:true}});
+  $$('.stat .n').forEach(n=>{const o={v:0},t=+n.dataset.n;gsap.to(o,{v:t,duration:1.6,ease:'power3.out',onUpdate:()=>n.innerHTML=Math.round(o.v)+'<sup>%</sup>',scrollTrigger:{trigger:n,start:'top 88%',once:true}})});
+  $$('.kpi [data-k],.kpi .v[data-k]').forEach(n=>{const o={v:0},t=+n.dataset.k;gsap.to(o,{v:t,duration:1.4,ease:'power2.out',onUpdate:()=>n.textContent=Math.round(o.v),scrollTrigger:{trigger:n,start:'top 92%',once:true}})});
+  ScrollTrigger.matchMedia({
+    '(min-width: 901px)':()=>{
+      tw.classList.add('pinned');
+      const dist=()=>track.scrollWidth-innerWidth;
+      const tween=gsap.to(track,{x:()=>-dist(),ease:'none'});
+      pinST=ScrollTrigger.create({trigger:'#boards',start:'bottom bottom',end:()=>'+='+dist(),pin:true,scrub:.7,animation:tween,invalidateOnRefresh:true,onUpdate:s=>setB(Math.round(s.progress*5))});
+      cards.forEach((cd,i)=>gsap.from(cd,{y:60+i*14,rotate:3,opacity:.4,scrollTrigger:{trigger:'#boards',start:'top 85%',end:'bottom bottom',scrub:true}}));
+      const scs=$$('.sc');scs.forEach((cd,i)=>{if(i<scs.length-1)gsap.to(cd,{scale:.9,opacity:.35,ease:'none',scrollTrigger:{trigger:scs[i+1],start:'top bottom',end:'top 96px',scrub:true}})});
+      return()=>{tw.classList.remove('pinned');pinST=null};
+    }});
+  $$('.bd').forEach(cd=>{if(!FINE)return;cd.addEventListener('pointermove',e=>{const r=cd.getBoundingClientRect();gsap.to(cd,{rotateY:(e.clientX-r.left-r.width/2)/r.width*6,rotateX:-(e.clientY-r.top-r.height/2)/r.height*6,transformPerspective:1000,duration:.5})});cd.addEventListener('pointerleave',()=>gsap.to(cd,{rotateX:0,rotateY:0,duration:.7,ease:'elastic.out(1,.5)'}))});
+}
+</script>
+</body>
+</html>

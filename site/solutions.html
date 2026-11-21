@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Boards · OncoBoard MDT</title>
+<meta name="description" content="How OncoBoard MDT supports Thoracic, Neuro, Breast, GI, Heme and Multi-Organ tumour boards, each specialty at the table, and departments, cancer centres and regional networks.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+<script>try{var t=localStorage.getItem('ob-b-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<style>
+/* page-local: board cards sit inside feature rows instead of the homepage carousel */
+.frow .bd{width:100%;min-height:460px;scroll-snap-align:none}
+.frow .bd h3{font-size:clamp(40px,4vw,60px)}
+.qs-t{margin-top:26px;font:500 13px var(--mono);color:var(--dim)}
+.qs-t+.checks{margin-top:10px}
+</style>
+</head>
+<body>
+<div id="site-header"></div>
+<main data-page="solutions">
+
+<div class="phero"><div class="wrap">
+  <p class="crumb"><a href="./">Home</a><span class="sep">/</span><span>Boards</span></p>
+  <h1 class="ptitle"><span class="ln"><span>Six boards.</span></span><span class="ln"><span class="hl">Six different questions.</span></span></h1>
+  <p class="plede">A lung board argues about N2 disease. A neuro board can't name the tumour without the molecular report. <b>Each board in OncoBoard opens with the study, the window, the staging and the markers it actually uses.</b></p>
+  <div class="cta-row"><a class="btn btn-p mag" href="contact.html">Book a Demo <span class="ar" data-i="arrow"></span></a><a class="btn btn-s" href="product.html">See the Platform</a></div>
+  <div class="spectrum" aria-hidden="true"></div>
+</div></div>
+
+<nav class="subnav" aria-label="On this page"><div class="wrap">
+  <a href="#thoracic"><i class="sw" style="background:var(--thor)"></i>Thoracic</a><a href="#neuro"><i class="sw" style="background:var(--neuro)"></i>Neuro</a><a href="#breast"><i class="sw" style="background:var(--breast)"></i>Breast</a><a href="#gi"><i class="sw" style="background:var(--gi)"></i>GI</a><a href="#heme"><i class="sw" style="background:var(--heme)"></i>Heme</a><a href="#multi"><i class="sw" style="background:var(--accent)"></i>Multi-Organ</a><a href="#roles">By Role</a><a href="#orgs">By Organisation</a>
+</div></nav>
+
+<section class="sec" style="padding-top:clamp(24px,4vw,48px)"><div class="wrap">
+
+  <!-- Thoracic -->
+  <div class="frow" id="thoracic">
+    <div>
+      <span class="n"><i style="background:var(--thor)"></i>01 · Thoracic Oncology</span>
+      <h2 class="h3big">Resect, irradiate, or target first?</h2>
+      <p class="body">Stage III lung cancer is where a thoracic board earns its time. The answer depends on how many mediastinal stations are involved, whether there is a targetable driver, and what PD-L1 shows. All three sit beside a CT that opens in a lung window.</p>
+      <dl class="specs">
+        <div><dt>Study default</dt><dd>CT chest · Lung −600 / 1500</dd></div>
+        <div><dt>One click away</dt><dd>Mediastinum 50 / 350 · Bone 350 / 1800</dd></div>
+        <div><dt>Staging</dt><dd>AJCC TNM · ECOG</dd></div>
+        <div><dt>Markers</dt><dd>EGFR · ALK · ROS1 · KRAS G12C · MET exon 14 · RET · PD-L1 TPS</dd></div>
+      </dl>
+      <p class="qs-t">What the board argues about</p>
+      <ul class="checks">
+        <li><span data-i="check"></span>Is the N2 disease single-station and resectable, or multistation?</li>
+        <li><span data-i="check"></span>Is there an actionable driver before immunotherapy is considered?</li>
+        <li><span data-i="check"></span>Is the patient fit for concurrent chemoradiation?</li>
+        <li><span data-i="check"></span>Is the target lesion measurable and reproducible for RECIST?</li>
+      </ul>
+    </div>
+    <article class="bd b-th" aria-label="Example Thoracic case card"><span class="glyph" aria-hidden="true">Th</span><div class="top"><span>Thoracic Board</span><span>ONC-2026-4102</span></div><h3>Stage IIIA</h3><p>Right upper lobe adenocarcinoma with multistation N2 disease. R.K., 64, ECOG 1.</p>
+      <dl class="meta"><div><dt>Study</dt><dd>CT chest · Lung −600 / 1500</dd></div><div><dt>NGS</dt><dd>EGFR p.Leu858Arg · Tier I-A</dd></div><div><dt>PD-L1</dt><dd>65% TPS</dd></div><div><dt>Status</dt><dd>In Review</dd></div></dl></article>
+  </div>
+
+  <!-- Neuro -->
+  <div class="frow rev" id="neuro">
+    <div>
+      <span class="n"><i style="background:var(--neuro)"></i>02 · Neuro Oncology</span>
+      <h2 class="h3big">One integrated diagnosis.</h2>
+      <p class="body">Since the 2021 WHO classification of CNS tumours (CNS5), the molecular result is part of the diagnosis. An IDH-mutant astrocytoma with CDKN2A/B homozygous deletion is CNS WHO grade 4, whatever the histology shows. The board needs the molecular report on screen before it can name the tumour.</p>
+      <dl class="specs">
+        <div><dt>Study default</dt><dd>Brain MRI · CT brain window 40 / 80 when CT is reviewed</dd></div>
+        <div><dt>Framework</dt><dd>WHO CNS5 (2021) integrated diagnosis</dd></div>
+        <div><dt>Markers</dt><dd>IDH1/2 · 1p/19q · CDKN2A/B · MGMT promoter · H3 K27 · ATRX · TERT promoter</dd></div>
+      </dl>
+      <p class="qs-t">What the board argues about</p>
+      <ul class="checks">
+        <li><span data-i="check"></span>Is this an IDH-wildtype glioblastoma on molecular criteria, even if the histology looks lower grade?</li>
+        <li><span data-i="check"></span>Is the 1p/19q codeletion confirmed for an oligodendroglioma diagnosis?</li>
+        <li><span data-i="check"></span>Is the MGMT promoter methylated, and how does that change the temozolomide discussion?</li>
+        <li><span data-i="check"></span>What does the post-operative MRI show about the extent of resection?</li>
+      </ul>
+    </div>
+    <article class="bd b-ne" aria-label="Example Neuro case card"><span class="glyph" aria-hidden="true">Ne</span><div class="top"><span>Neuro Board</span><span>ONC-2026-4131</span></div><h3>Grade 4</h3><p>Astrocytoma, IDH-mutant, with CDKN2A/B homozygous deletion. J.T., 41.</p>
+      <dl class="meta"><div><dt>Study</dt><dd>Brain MRI · post-operative</dd></div><div><dt>IDH</dt><dd>IDH1 p.Arg132His</dd></div><div><dt>MGMT</dt><dd>Promoter methylated</dd></div><div><dt>Status</dt><dd>Scheduled</dd></div></dl></article>
+  </div>
+
+  <!-- Breast -->
+  <div class="frow" id="breast">
+    <div>
+      <span class="n"><i style="background:var(--breast)"></i>03 · Breast Oncology</span>
+      <h2 class="h3big">HER2-zero or HER2-low?</h2>
+      <p class="body">HER2 used to be positive or negative. HER2-low (IHC 1+, or 2+ with negative ISH) now opens a treatment option in metastatic disease, so the exact score matters. Receptors, Ki-67 and germline results sit beside the breast MRI before the board weighs neoadjuvant treatment against surgery first.</p>
+      <dl class="specs">
+        <div><dt>Study default</dt><dd>Breast MRI</dd></div>
+        <div><dt>Staging</dt><dd>AJCC TNM · grade</dd></div>
+        <div><dt>Receptors</dt><dd>ER · PR · HER2 IHC 0 / 1+ / 2+ / 3+ with ISH</dd></div>
+        <div><dt>Markers</dt><dd>Ki-67 · BRCA1/2 · PIK3CA</dd></div>
+      </dl>
+      <p class="qs-t">What the board argues about</p>
+      <ul class="checks">
+        <li><span data-i="check"></span>Neoadjuvant systemic treatment or surgery first?</li>
+        <li><span data-i="check"></span>Is HER2 zero, low or positive, and was ISH done for a 2+ result?</li>
+        <li><span data-i="check"></span>Does a germline BRCA1/2 result change the surgical or systemic plan?</li>
+        <li><span data-i="check"></span>Is breast-conserving surgery realistic after response on MRI?</li>
+      </ul>
+    </div>
+    <article class="bd b-br" aria-label="Example Breast case card"><span class="glyph" aria-hidden="true">Br</span><div class="top"><span>Breast Board</span><span>ONC-2026-4147</span></div><h3>HER2-low</h3><p>Invasive ductal carcinoma, ER-positive, HER2 IHC 2+ with negative ISH. A.M., 52.</p>
+      <dl class="meta"><div><dt>Study</dt><dd>Breast MRI</dd></div><div><dt>Receptors</dt><dd>ER 90% · PR 20%</dd></div><div><dt>Ki-67</dt><dd>25%</dd></div><div><dt>Status</dt><dd>Intake</dd></div></dl></article>
+  </div>
+
+  <!-- GI -->
+  <div class="frow rev" id="gi">
+    <div>
+      <span class="n"><i style="background:var(--gi)"></i>04 · GI Oncology</span>
+      <h2 class="h3big">Resectable, borderline, or not yet?</h2>
+      <p class="body">With colorectal liver metastases the surgeon's question comes first: how many lesions, where, and how much liver would remain. The study opens in a liver window, measurements are calibrated in millimetres, and mismatch repair and RAS/BRAF status are on the same screen when the question is asked.</p>
+      <dl class="specs">
+        <div><dt>Study default</dt><dd>CT liver · Liver 60 / 160</dd></div>
+        <div><dt>Staging</dt><dd>AJCC TNM · CEA trend from labs</dd></div>
+        <div><dt>Markers</dt><dd>dMMR / MSI-H · KRAS · NRAS · BRAF V600E · HER2</dd></div>
+      </dl>
+      <p class="qs-t">What the board argues about</p>
+      <ul class="checks">
+        <li><span data-i="check"></span>Are the liver metastases resectable now, or only after conversion chemotherapy?</li>
+        <li><span data-i="check"></span>Is the tumour dMMR/MSI-H, pointing towards immunotherapy?</li>
+        <li><span data-i="check"></span>Is RAS wild-type, so anti-EGFR treatment is an option?</li>
+        <li><span data-i="check"></span>Is BRAF V600E present, and what does that do to the sequence?</li>
+      </ul>
+    </div>
+    <article class="bd b-gi" aria-label="Example GI case card"><span class="glyph" aria-hidden="true">GI</span><div class="top"><span>GI Board</span><span>ONC-2026-4158</span></div><h3>3 lesions</h3><p>Sigmoid adenocarcinoma with synchronous liver metastases. D.O., 67.</p>
+      <dl class="meta"><div><dt>Study</dt><dd>CT liver · Liver 60 / 160</dd></div><div><dt>Largest</dt><dd>31 mm</dd></div><div><dt>Molecular</dt><dd>pMMR · RAS and BRAF wild-type</dd></div><div><dt>Status</dt><dd>In Review</dd></div></dl></article>
+  </div>
+
+  <!-- Heme -->
+  <div class="frow" id="heme">
+    <div>
+      <span class="n"><i style="background:var(--heme)"></i>05 · Heme Oncology</span>
+      <h2 class="h3big">Response, risk, and the next line.</h2>
+      <p class="body">Lymphoma boards read PET-CT against the Lugano classification and its Deauville five-point scale. Leukaemia boards weigh ELN 2022 genetic risk before deciding on transplant. Both need imaging, cytogenetics and molecular results in one dossier.</p>
+      <dl class="specs">
+        <div><dt>Study default</dt><dd>PET-CT</dd></div>
+        <div><dt>Frameworks</dt><dd>Lugano · Deauville 1–5 · ELN 2022</dd></div>
+        <div><dt>Markers</dt><dd>NPM1 · FLT3-ITD · TP53 · MYC / BCL2 rearrangement</dd></div>
+      </dl>
+      <p class="qs-t">What the board argues about</p>
+      <ul class="checks">
+        <li><span data-i="check"></span>Is the interim PET Deauville 1–3, a complete metabolic response, or 4–5?</li>
+        <li><span data-i="check"></span>Does a MYC and BCL2 rearrangement change the regimen?</li>
+        <li><span data-i="check"></span>Where does the AML sit on ELN 2022 risk, and is transplant in first remission on the table?</li>
+        <li><span data-i="check"></span>Is the patient fit for intensive treatment?</li>
+      </ul>
+    </div>
+    <article class="bd b-he" aria-label="Example Heme case card"><span class="glyph" aria-hidden="true">He</span><div class="top"><span>Heme Board</span><span>ONC-2026-4166</span></div><h3>Deauville 2</h3><p>Diffuse large B-cell lymphoma, interim PET-CT after two cycles. P.S., 58.</p>
+      <dl class="meta"><div><dt>Study</dt><dd>PET-CT · interim</dd></div><div><dt>FISH</dt><dd>No MYC or BCL2 rearrangement</dd></div><div><dt>Response</dt><dd>Complete metabolic response</dd></div><div><dt>Status</dt><dd>Scheduled</dd></div></dl></article>
+  </div>
+
+  <!-- Multi-Organ -->
+  <div class="frow rev" id="multi">
+    <div>
+      <span class="n"><i style="background:var(--accent)"></i>06 · Multi-Organ Board</span>
+      <h2 class="h3big">When the primary isn't obvious.</h2>
+      <p class="body">Cancer of unknown primary, oligometastatic disease and second primaries need every specialty at once. The Multi-Organ board brings every window preset and every marker set to one agenda, so pathology can work through the IHC panel while radiology scrolls the staging scan.</p>
+      <dl class="specs">
+        <div><dt>Study default</dt><dd>Any of the six clinical presets</dd></div>
+        <div><dt>Staging</dt><dd>Per suspected primary</dd></div>
+        <div><dt>Markers</dt><dd>Full IHC panel · NGS tiers I-A to III</dd></div>
+      </dl>
+      <p class="qs-t">What the board argues about</p>
+      <ul class="checks">
+        <li><span data-i="check"></span>Does the IHC panel point to a likely primary?</li>
+        <li><span data-i="check"></span>Is the disease oligometastatic, and is treating every site realistic?</li>
+        <li><span data-i="check"></span>Is this a second primary or a metastasis?</li>
+        <li><span data-i="check"></span>Is there an actionable variant whatever the site of origin?</li>
+      </ul>
+    </div>
+    <article class="bd b-mo" aria-label="Example Multi-Organ case card"><span class="glyph" aria-hidden="true">MO</span><div class="top"><span>Multi-Organ Board</span><span>ONC-2026-4172</span></div><h3>Unknown primary</h3><p>Adenocarcinoma in a cervical lymph node. H.B., 71.</p>
+      <dl class="meta"><div><dt>Study</dt><dd>CT neck, chest and abdomen</dd></div><div><dt>IHC</dt><dd>CK7+ · CK20− · TTF-1−</dd></div><div><dt>NGS</dt><dd>Requested</dd></div><div><dt>Status</dt><dd>Intake</dd></div></dl></article>
+  </div>
+</div></section>
+
+<!-- By role -->
+<section class="sec" id="roles" style="padding-top:0"><div class="wrap">
+  <div class="head"><div><p class="lab">By role</p><h2 class="h2">Six specialties.<br><span class="soft">One case between them.</span></h2></div><p class="intro">Each specialty comes to the board with a different job. Here is what changes for each of them.</p></div>
+  <div class="cards">
+    <div class="card"><span class="ic"><span data-i="clipboard"></span></span><h3>MDT Coordinator</h3><p>Build the list without chasing reports by email. Register cases, see what is still missing, queue the session and go live.</p><p class="meta">Case Registry · Board Schedule · 72 h SLA</p></div>
+    <div class="card"><span class="ic"><span data-i="vote"></span></span><h3>Board Chair</h3><p>Keep the meeting moving. A timer on each case, quorum visible to the room, and one sign-off that files the consensus report.</p><p class="meta">Case timer · Live quorum · Sign Off &amp; Ratify</p></div>
+    <div class="card"><span class="ic"><span data-i="scan"></span></span><h3>Diagnostic Radiology</h3><p>Present the study without sharing a screen. The room follows your slice and window, and your measurements are saved as RECIST lesions.</p><p class="meta">DICOM Studio · Presenter sync · RECIST 1.1</p></div>
+    <div class="card"><span class="ic"><span data-i="flask"></span></span><h3>Molecular Pathology</h3><p>Your findings stay structured: histology, grade, margins, IHC and every variant with its VAF, tier and actionable therapy.</p><p class="meta">Pathology · NGS tiers · Trial matching</p></div>
+    <div class="card"><span class="ic"><span data-i="activity"></span></span><h3>Medical &amp; Radiation Oncology</h3><p>Staging, drivers and treatment history on one page. Ask the case copilot a question, then vote with your rationale on the record.</p><p class="meta">Patient Dossier · Case copilot · Specialty vote</p></div>
+    <div class="card"><span class="ic"><span data-i="ruler"></span></span><h3>Surgical Oncology</h3><p>Answer the resectability question with the image open, at the same slice and window as the room. Dissent is kept with the case.</p><p class="meta">Synced DICOM · Dissent on record · Analytics</p></div>
+  </div>
+</div></section>
+
+<!-- By organisation -->
+<section class="sec" id="orgs" style="padding-top:0"><div class="wrap">
+  <div class="head"><div><p class="lab">By organisation</p><h2 class="h2">Start with one board.<br><span class="soft">Add the rest when it works.</span></h2></div><p class="intro">The same platform runs a single departmental board or every board across several hospitals.</p></div>
+  <div class="cards">
+    <a class="card" href="pricing.html"><span class="rule" style="background:var(--thor)" aria-hidden="true"></span><span class="ic"><span data-i="users"></span></span><h3>A single-board department</h3><p>Start with the board that struggles most, often thoracic or breast. Registry, dossier, live room and the signed record for that board.</p><span class="go">Compare Plans <span data-i="arrow"></span></span></a>
+    <a class="card" href="pricing.html"><span class="rule" style="background:var(--neuro)" aria-hidden="true"></span><span class="ic"><span data-i="building"></span></span><h3>A cancer centre</h3><p>All five organ boards and the Multi-Organ board on one platform, with shared clinicians, one audit trail and analytics across boards.</p><span class="go">Compare Plans <span data-i="arrow"></span></span></a>
+    <a class="card" href="pricing.html"><span class="rule" style="background:var(--heme)" aria-hidden="true"></span><span class="ic"><span data-i="globe"></span></span><h3>A regional network</h3><p>Clinicians from different hospitals join the same live room from their own browsers. One record per case, whichever site referred it.</p><span class="go">Compare Plans <span data-i="arrow"></span></span></a>
+  </div>
+</div></section>
+
+<section class="sec" style="padding-top:0"><div class="wrap"><div class="mesh slim"><span class="blob" style="background:#0284C7;left:-12%;top:-30%"></span><span class="blob" style="background:#7C3AED;right:-15%;top:-25%"></span><span class="blob" style="background:#DB2777;left:28%;bottom:-55%"></span><span class="blob" style="background:#D97706;right:2%;bottom:-65%;width:36%"></span><span class="grain" aria-hidden="true"></span><div><h2>Start with the board that struggles most.</h2><p class="sub">We set it up in a sandbox and run a de-identified case with your team.</p></div><a class="btn btn-p btn-w mag" href="contact.html">Book a Demo <span class="ar" data-i="arrow"></span></a></div></div></section>
+
+</main>
+<div id="site-footer"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="site.js"></script>
+<script>
+const {$$,G,FINE}=OB;
+// board cards: rise in on scroll, tilt toward the pointer on desktop
+if(G){
+ $$('.frow .bd').forEach(cd=>gsap.fromTo(cd,{y:50,rotate:2,opacity:0},{y:0,rotate:0,opacity:1,duration:1,ease:'expo.out',scrollTrigger:{trigger:cd,start:'top 88%',once:true}}));
+ if(FINE)$$('.frow .bd').forEach(cd=>{cd.addEventListener('pointermove',e=>{const r=cd.getBoundingClientRect();gsap.to(cd,{rotateY:(e.clientX-r.left-r.width/2)/r.width*6,rotateX:-(e.clientY-r.top-r.height/2)/r.height*6,transformPerspective:1000,duration:.5})});cd.addEventListener('pointerleave',()=>gsap.to(cd,{rotateX:0,rotateY:0,duration:.7,ease:'elastic.out(1,.5)'}))});
+}
+</script>
+</body>
+</html>

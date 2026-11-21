@@ -5,9 +5,14 @@ import path from 'node:path';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import {
+  clearFailures,
   createSession,
   hashPassword,
+  isLocked,
+  purgeExpiredSessions,
+  recordFailure,
   requireAuth,
+  revokeOtherSessions,
   revokeSession,
   verifyPassword,
   type AuthenticatedRequest,
@@ -51,6 +56,31 @@ const VALID_ROLES = new Set<SpecialtyRole>([
   'Molecular Pathology',
   'MDT Coordinator',
 ]);
+
+const VALID_SEX = new Set(['Female', 'Male', 'Other']);
+const VALID_ROOM_STATUSES = new Set(['Scheduled', 'Live', 'Completed']);
+const VALID_MESSAGE_TAGS = new Set([
+  'General',
+  'Radiology Finding',
+  'Pathology Update',
+  'Action Item',
+  'Urgent Handoff',
+]);
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+// Full error text (which can include SQL) goes to the server log; production clients get the generic line.
+function fail(res: express.Response, err: unknown, fallback: string): void {
+  console.error(`[api] ${fallback}`, err);
+  const detail = err instanceof Error ? err.message : fallback;
+  res.status(500).json({ error: process.env.NODE_ENV === 'production' ? fallback : detail });
+}
+
+// Writes against a missing or archived case would otherwise create orphan rows.
+async function caseExists(id: string): Promise<boolean> {
+  return Boolean(await db.queryOne('SELECT id FROM patient_cases WHERE id = ? AND archived_at IS NULL', [id]));
+}
 
 function mapBoardToPreset(board: OrganBoard): DicomPresetKey {
   switch (board) {
@@ -107,7 +137,35 @@ async function bootstrap(): Promise<void> {
   await db.init();
 
   const app = express();
-  app.use(express.json({ limit: '10mb' }));
+  app.disable('x-powered-by');
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'same-origin');
+    if (process.env.NODE_ENV === 'production') {
+      res.setHeader('Strict-Transport-Security', 'max-age=15552000');
+    }
+    next();
+  });
+  // Clinical data must never be cached by a browser or intermediary.
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
+  // Only the DICOM snapshot route needs a large body; everything else is capped at 1 MB.
+  app.use('/api/ai/dicom-assist', express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '1mb' }));
+
+  // Public liveness probe for the host / uptime monitors. It reveals nothing beyond up or down.
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await db.queryOne('SELECT 1 AS ok');
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('[api] Health check failed', err);
+      res.status(503).json({ ok: false });
+    }
+  });
 
   // --- Health & Hostinger MySQL / SQLite System Status ---
   app.get('/api/system/status', requireAuth, async (_req, res) => {
@@ -118,7 +176,7 @@ async function bootstrap(): Promise<void> {
         aiConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()),
       });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Status check failed' });
+      fail(res, err, 'Status check failed');
     }
   });
 
@@ -133,7 +191,7 @@ async function bootstrap(): Promise<void> {
       const rows = await db.query('SELECT * FROM clinicians ORDER BY is_chair DESC, full_name ASC');
       res.json({ clinicians: rows.map(mapClinicianRow) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load clinicians' });
+      fail(res, err, 'Failed to load clinicians');
     }
   });
 
@@ -150,20 +208,28 @@ async function bootstrap(): Promise<void> {
         return;
       }
 
+      const lockKey = `login:${email}`;
+      if (isLocked(lockKey)) {
+        res.status(429).json({ error: 'Too many failed sign-in attempts. Try again in 15 minutes.' });
+        return;
+      }
+
       const row = await db.queryOne<Record<string, unknown>>(
         'SELECT * FROM clinicians WHERE LOWER(email) = ?',
         [email],
       );
       if (!row || !verifyPassword(password, String(row.password_hash))) {
+        recordFailure(lockKey);
         res.status(401).json({ error: 'Invalid clinician email or password.' });
         return;
       }
 
+      clearFailures(lockKey);
       const clinician = mapClinicianRow(row);
-      const session = createSession(clinician);
+      const session = await createSession(clinician);
       res.json({ token: session.token, clinician });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Login failed' });
+      fail(res, err, 'Login failed');
     }
   });
 
@@ -179,15 +245,31 @@ async function bootstrap(): Promise<void> {
           res.status(403).json({ error: 'Registration is closed on this server. Ask your administrator for an account.' });
           return;
         }
+        // One shared bucket: stops anyone guessing the registration code, whatever IP they claim.
+        if (isLocked('register-code')) {
+          res.status(429).json({ error: 'Too many invalid registration codes. Try again in 15 minutes.' });
+          return;
+        }
         if (!codeMatches(String(req.body?.registrationCode ?? ''))) {
+          recordFailure('register-code');
           res.status(403).json({ error: 'That registration code is not valid.' });
           return;
         }
       }
 
-      if (!fullName || !email || password.length < 8 || !VALID_ROLES.has(specialty)) {
+      if (
+        !fullName ||
+        !email ||
+        !email.includes('@') ||
+        password.length < 8 ||
+        fullName.length > 160 ||
+        email.length > 190 ||
+        title.length > 160 ||
+        password.length > 200 ||
+        !VALID_ROLES.has(specialty)
+      ) {
         res.status(400).json({
-          error: 'Full name, valid email, specialty role, and password (min 8 chars) are required.',
+          error: 'Full name, valid email, specialty role, and password (8 to 200 chars) are required.',
         });
         return;
       }
@@ -221,11 +303,11 @@ async function bootstrap(): Promise<void> {
         [id],
       );
       const clinician = mapClinicianRow(createdRow!);
-      const session = createSession(clinician);
+      const session = await createSession(clinician);
       await logAudit(clinician, 'CLINICIAN_REGISTERED', 'clinician', clinician.id, `Registered ${clinician.specialty} account.`);
       res.status(201).json({ token: session.token, clinician });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Registration failed' });
+      fail(res, err, 'Registration failed');
     }
   });
 
@@ -245,10 +327,10 @@ async function bootstrap(): Promise<void> {
         return;
       }
       const clinician = mapClinicianRow(row);
-      const session = createSession(clinician);
+      const session = await createSession(clinician);
       res.json({ token: session.token, clinician });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Session creation failed' });
+      fail(res, err, 'Session creation failed');
     }
   });
 
@@ -256,18 +338,70 @@ async function bootstrap(): Promise<void> {
     res.json({ clinician: req.clinician });
   });
 
-  app.post('/api/auth/logout', requireAuth, (req: AuthenticatedRequest, res) => {
-    revokeSession(req.sessionToken);
-    res.json({ ok: true });
+  app.post('/api/auth/logout', requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      await revokeSession(req.sessionToken);
+      res.json({ ok: true });
+    } catch (err) {
+      fail(res, err, 'Sign-out failed');
+    }
+  });
+
+  // Changing a password signs the account out everywhere else; the current session stays.
+  app.post('/api/auth/password', requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const currentPassword = String(req.body?.currentPassword ?? '');
+      const newPassword = String(req.body?.newPassword ?? '');
+      if (!currentPassword || newPassword.length < 8 || newPassword.length > 200) {
+        res.status(400).json({ error: 'Enter your current password and a new password of 8 to 200 characters.' });
+        return;
+      }
+      if (newPassword === currentPassword) {
+        res.status(400).json({ error: 'The new password must differ from the current one.' });
+        return;
+      }
+
+      const clinician = req.clinician!;
+      const lockKey = `login:${clinician.email.toLowerCase()}`;
+      if (isLocked(lockKey)) {
+        res.status(429).json({ error: 'Too many failed attempts. Try again in 15 minutes.' });
+        return;
+      }
+      const row = await db.queryOne<Record<string, unknown>>(
+        'SELECT password_hash FROM clinicians WHERE id = ?',
+        [clinician.id],
+      );
+      if (!row || !verifyPassword(currentPassword, String(row.password_hash))) {
+        recordFailure(lockKey);
+        // 400, not 401: the client treats a 401 on a signed-in request as an expired session.
+        res.status(400).json({ error: 'Your current password is not correct.' });
+        return;
+      }
+
+      clearFailures(lockKey);
+      await db.execute('UPDATE clinicians SET password_hash = ? WHERE id = ?', [
+        hashPassword(newPassword),
+        clinician.id,
+      ]);
+      await revokeOtherSessions(clinician.id, req.sessionToken!);
+      await logAudit(clinician, 'PASSWORD_CHANGED', 'clinician', clinician.id, 'Changed account password; other sessions signed out.');
+      res.json({ ok: true });
+    } catch (err) {
+      fail(res, err, 'Password change failed');
+    }
   });
 
   // --- Patient Cases CRUD ---
-  app.get('/api/cases', requireAuth, async (_req, res) => {
+  // Archived cases are hidden from the registry; ?archived=1 lists only those.
+  app.get('/api/cases', requireAuth, async (req, res) => {
     try {
-      const rows = await db.query('SELECT * FROM patient_cases ORDER BY updated_at DESC');
+      const archivedClause = req.query.archived === '1' ? 'NOT NULL' : 'NULL';
+      const rows = await db.query(
+        `SELECT * FROM patient_cases WHERE archived_at IS ${archivedClause} ORDER BY updated_at DESC`,
+      );
       res.json({ cases: rows.map(mapCaseRow) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load cases' });
+      fail(res, err, 'Failed to load cases');
     }
   });
 
@@ -295,7 +429,7 @@ async function bootstrap(): Promise<void> {
         votes: votes.map(mapVoteRow),
       });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load case' });
+      fail(res, err, 'Failed to load case');
     }
   });
 
@@ -326,8 +460,22 @@ async function bootstrap(): Promise<void> {
         res.status(400).json({ error: 'Age must be between 1 and 120.' });
         return;
       }
-      if (!VALID_BOARDS.has(organBoard) || !VALID_URGENCIES.has(urgency)) {
-        res.status(400).json({ error: 'Invalid organ board or urgency classification.' });
+      if (!VALID_BOARDS.has(organBoard) || !VALID_URGENCIES.has(urgency) || !VALID_SEX.has(sex)) {
+        res.status(400).json({ error: 'Invalid organ board, urgency or sex classification.' });
+        return;
+      }
+      // Stay inside the column widths so MySQL never rejects the row with an opaque error.
+      if (
+        mrn.length > 64 ||
+        patientInitials.length > 16 ||
+        primaryDiagnosis.length > 255 ||
+        histology.length > 255 ||
+        tnmT.length > 16 ||
+        tnmN.length > 16 ||
+        tnmM.length > 16 ||
+        clinicalSummary.length > 20000
+      ) {
+        res.status(400).json({ error: 'One or more fields exceed their maximum length.' });
         return;
       }
 
@@ -413,7 +561,7 @@ async function bootstrap(): Promise<void> {
       );
       res.status(201).json({ patientCase: mapCaseRow(created!) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to create case' });
+      fail(res, err, 'Failed to create case');
     }
   });
 
@@ -451,6 +599,24 @@ async function bootstrap(): Promise<void> {
       const genomics = req.body?.genomics ?? current.genomics;
       const now = new Date().toISOString();
 
+      if (
+        !Number.isInteger(ecog) ||
+        ecog < 0 ||
+        ecog > 4 ||
+        !isPlainObject(pathology) ||
+        !isPlainObject(genomics) ||
+        [tnmT, tnmN, tnmM].some((v) => v.length > 16) ||
+        stageGroup.length > 32 ||
+        clinicalSummary.length > 20000
+      ) {
+        res.status(400).json({ error: 'ECOG must be 0 to 4, pathology and genomics must be objects, and staging fields must fit their length limits.' });
+        return;
+      }
+      if (current.archivedAt) {
+        res.status(409).json({ error: 'This case is archived. Restore it before editing.' });
+        return;
+      }
+
       await db.execute(
         `UPDATE patient_cases
          SET tnm_t = ?, tnm_n = ?, tnm_m = ?, stage_group = ?, status = ?, urgency = ?,
@@ -486,9 +652,50 @@ async function bootstrap(): Promise<void> {
       );
       res.json({ patientCase: mapCaseRow(updated!) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to update case' });
+      fail(res, err, 'Failed to update case');
     }
   });
+
+  // Archiving is a reversible soft delete: nothing is removed, so the clinical record and its audit trail survive.
+  for (const [verb, archive] of [['archive', true], ['restore', false]] as const) {
+    app.post(`/api/cases/:id/${verb}`, requireAuth, async (req: AuthenticatedRequest, res) => {
+      try {
+        const row = await db.queryOne<Record<string, unknown>>(
+          'SELECT * FROM patient_cases WHERE id = ?',
+          [req.params.id],
+        );
+        if (!row) {
+          res.status(404).json({ error: 'Patient case not found.' });
+          return;
+        }
+        const current = mapCaseRow(row);
+        if (!req.clinician!.isChair && current.leadClinicianId !== req.clinician!.id) {
+          res.status(403).json({ error: `Only the lead clinician or a board chair can ${verb} this case.` });
+          return;
+        }
+        const now = new Date().toISOString();
+        await db.execute('UPDATE patient_cases SET archived_at = ?, updated_at = ? WHERE id = ?', [
+          archive ? now : null,
+          now,
+          current.id,
+        ]);
+        await logAudit(
+          req.clinician!,
+          archive ? 'CASE_ARCHIVED' : 'CASE_RESTORED',
+          'patient_case',
+          current.id,
+          `${archive ? 'Archived' : 'Restored'} case ${current.mrn}.`,
+        );
+        const updated = await db.queryOne<Record<string, unknown>>(
+          'SELECT * FROM patient_cases WHERE id = ?',
+          [current.id],
+        );
+        res.json({ patientCase: mapCaseRow(updated!) });
+      } catch (err) {
+        fail(res, err, `Failed to ${verb} case`);
+      }
+    });
+  }
 
   // --- Imaging RECIST Annotations ---
   app.get('/api/cases/:id/annotations', requireAuth, async (req, res) => {
@@ -499,7 +706,7 @@ async function bootstrap(): Promise<void> {
       );
       res.json({ annotations: rows.map(mapAnnotationRow) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load annotations' });
+      fail(res, err, 'Failed to load annotations');
     }
   });
 
@@ -517,8 +724,23 @@ async function bootstrap(): Promise<void> {
       const lengthMm = Number(req.body?.lengthMm);
       const meanHu = req.body?.meanHu !== null && req.body?.meanHu !== undefined ? Number(req.body.meanHu) : null;
 
-      if (!label || !Number.isFinite(lengthMm) || lengthMm < 0) {
-        res.status(400).json({ error: 'Valid lesion label and calibrated millimeter length are required.' });
+      if (
+        !label ||
+        !Number.isFinite(lengthMm) ||
+        lengthMm < 0 ||
+        ![x1, y1, x2, y2].every(Number.isFinite) ||
+        !Number.isInteger(sliceIndex) ||
+        sliceIndex < 0 ||
+        (meanHu !== null && !Number.isFinite(meanHu)) ||
+        label.length > 160 ||
+        seriesId.length > 64 ||
+        lesionType.length > 32
+      ) {
+        res.status(400).json({ error: 'Valid lesion label, slice, coordinates and calibrated millimeter length are required.' });
+        return;
+      }
+      if (!(await caseExists(caseId))) {
+        res.status(404).json({ error: 'Patient case not found or archived.' });
         return;
       }
 
@@ -565,7 +787,7 @@ async function bootstrap(): Promise<void> {
       boardHub.broadcast(`case:${caseId}`, { type: 'annotation:saved', payload: annotation });
       res.status(201).json({ annotation });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to save annotation' });
+      fail(res, err, 'Failed to save annotation');
     }
   });
 
@@ -581,17 +803,20 @@ async function bootstrap(): Promise<void> {
       );
       res.json({ ok: true });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to delete annotation' });
+      fail(res, err, 'Failed to delete annotation');
     }
   });
 
   // --- Tumour Board Meetings & Scheduler ---
-  app.get('/api/meetings', requireAuth, async (_req, res) => {
+  app.get('/api/meetings', requireAuth, async (req, res) => {
     try {
-      const rows = await db.query('SELECT * FROM mdt_meetings ORDER BY scheduled_start ASC');
+      const archivedClause = req.query.archived === '1' ? 'NOT NULL' : 'NULL';
+      const rows = await db.query(
+        `SELECT * FROM mdt_meetings WHERE archived_at IS ${archivedClause} ORDER BY scheduled_start ASC`,
+      );
       res.json({ meetings: rows.map(mapMeetingRow) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load meetings' });
+      fail(res, err, 'Failed to load meetings');
     }
   });
 
@@ -603,8 +828,8 @@ async function bootstrap(): Promise<void> {
       const durationMinutes = Number(req.body?.durationMinutes ?? 60);
       const agendaCaseIds: string[] = Array.isArray(req.body?.caseIds) ? req.body.caseIds : [];
 
-      if (!title || !scheduledStart) {
-        res.status(400).json({ error: 'Meeting title and scheduled start time are required.' });
+      if (!title || !scheduledStart || title.length > 200 || scheduledStart.length > 40 || organBoard.length > 48) {
+        res.status(400).json({ error: 'Meeting title and scheduled start time are required (title up to 200 characters).' });
         return;
       }
 
@@ -651,7 +876,7 @@ async function bootstrap(): Promise<void> {
       );
       res.status(201).json({ meeting: mapMeetingRow(created!) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to schedule meeting' });
+      fail(res, err, 'Failed to schedule meeting');
     }
   });
 
@@ -671,6 +896,19 @@ async function bootstrap(): Promise<void> {
         req.body?.activeCaseId !== undefined ? req.body.activeCaseId : current.activeCaseId;
       const agenda = Array.isArray(req.body?.agenda) ? req.body.agenda : current.agenda;
 
+      if (
+        !VALID_ROOM_STATUSES.has(roomStatus) ||
+        (activeCaseId !== null && (typeof activeCaseId !== 'string' || activeCaseId.length > 64)) ||
+        agenda.length > 200
+      ) {
+        res.status(400).json({ error: 'Room status must be Scheduled, Live or Completed, and the agenda must be a list of at most 200 items.' });
+        return;
+      }
+      if (current.archivedAt) {
+        res.status(409).json({ error: 'This meeting is archived. Restore it before editing.' });
+        return;
+      }
+
       await db.execute(
         'UPDATE mdt_meetings SET room_status = ?, active_case_id = ?, agenda_json = ? WHERE id = ?',
         [roomStatus, activeCaseId, JSON.stringify(agenda), req.params.id],
@@ -684,9 +922,51 @@ async function bootstrap(): Promise<void> {
       boardHub.broadcast(`meeting:${meeting.id}`, { type: 'meeting:updated', payload: meeting });
       res.json({ meeting });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to update meeting' });
+      fail(res, err, 'Failed to update meeting');
     }
   });
+
+  for (const [verb, archive] of [['archive', true], ['restore', false]] as const) {
+    app.post(`/api/meetings/:id/${verb}`, requireAuth, async (req: AuthenticatedRequest, res) => {
+      try {
+        const row = await db.queryOne<Record<string, unknown>>(
+          'SELECT * FROM mdt_meetings WHERE id = ?',
+          [req.params.id],
+        );
+        if (!row) {
+          res.status(404).json({ error: 'Meeting not found.' });
+          return;
+        }
+        const current = mapMeetingRow(row);
+        if (!req.clinician!.isChair && current.chairName !== req.clinician!.fullName) {
+          res.status(403).json({ error: `Only the meeting chair or a board chair can ${verb} this meeting.` });
+          return;
+        }
+        if (archive && current.roomStatus === 'Live') {
+          res.status(409).json({ error: 'A live meeting cannot be archived. End the session first.' });
+          return;
+        }
+        await db.execute('UPDATE mdt_meetings SET archived_at = ? WHERE id = ?', [
+          archive ? new Date().toISOString() : null,
+          current.id,
+        ]);
+        await logAudit(
+          req.clinician!,
+          archive ? 'MEETING_ARCHIVED' : 'MEETING_RESTORED',
+          'mdt_meeting',
+          current.id,
+          `${archive ? 'Archived' : 'Restored'} meeting "${current.title}".`,
+        );
+        const updated = await db.queryOne<Record<string, unknown>>(
+          'SELECT * FROM mdt_meetings WHERE id = ?',
+          [current.id],
+        );
+        res.json({ meeting: mapMeetingRow(updated!) });
+      } catch (err) {
+        fail(res, err, `Failed to ${verb} meeting`);
+      }
+    });
+  }
 
   // --- Consensus Votes & Sign-Off ---
   app.get('/api/cases/:id/votes', requireAuth, async (req, res) => {
@@ -697,7 +977,7 @@ async function bootstrap(): Promise<void> {
       );
       res.json({ votes: rows.map(mapVoteRow) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load votes' });
+      fail(res, err, 'Failed to load votes');
     }
   });
 
@@ -708,8 +988,12 @@ async function bootstrap(): Promise<void> {
       const rationale = String(req.body?.rationale ?? '').trim();
       const meetingId = req.body?.meetingId ? String(req.body.meetingId) : null;
 
-      if (!optionLabel) {
-        res.status(400).json({ error: 'Please choose a treatment pathway option before submitting your vote.' });
+      if (!optionLabel || optionLabel.length > 160 || rationale.length > 5000) {
+        res.status(400).json({ error: 'Please choose a treatment pathway option (up to 160 characters) and keep the rationale under 5,000 characters.' });
+        return;
+      }
+      if (!(await caseExists(caseId))) {
+        res.status(404).json({ error: 'Patient case not found or archived.' });
         return;
       }
 
@@ -770,7 +1054,7 @@ async function bootstrap(): Promise<void> {
 
       res.json({ votes });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to cast vote' });
+      fail(res, err, 'Failed to cast vote');
     }
   });
 
@@ -792,6 +1076,10 @@ async function bootstrap(): Promise<void> {
         res.status(400).json({
           error: 'Primary recommendation and clinical rationale are required for consensus sign-off.',
         });
+        return;
+      }
+      if (!(await caseExists(caseId))) {
+        res.status(404).json({ error: 'Patient case not found or archived.' });
         return;
       }
 
@@ -839,7 +1127,7 @@ async function bootstrap(): Promise<void> {
 
       res.json({ patientCase });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to sign consensus' });
+      fail(res, err, 'Failed to sign consensus');
     }
   });
 
@@ -857,7 +1145,7 @@ async function bootstrap(): Promise<void> {
       );
       res.json({ messages: rows.map(mapMessageRow) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load messages' });
+      fail(res, err, 'Failed to load messages');
     }
   });
 
@@ -868,8 +1156,8 @@ async function bootstrap(): Promise<void> {
       const tag = String(req.body?.tag ?? 'General').trim();
       const body = String(req.body?.body ?? '').trim();
 
-      if (!roomId || !body) {
-        res.status(400).json({ error: 'Message room and content are required.' });
+      if (!roomId || !body || roomId.length > 96 || body.length > 4000 || !VALID_MESSAGE_TAGS.has(tag)) {
+        res.status(400).json({ error: 'Message room and content (up to 4,000 characters) are required, with a valid tag.' });
         return;
       }
 
@@ -900,7 +1188,7 @@ async function bootstrap(): Promise<void> {
       boardHub.broadcast(roomId, { type: 'chat:new', payload: message });
       res.status(201).json({ message });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to send message' });
+      fail(res, err, 'Failed to send message');
     }
   });
 
@@ -910,7 +1198,7 @@ async function bootstrap(): Promise<void> {
       const rows = await db.query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 80');
       res.json({ logs: rows.map(mapAuditRow) });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load audit log' });
+      fail(res, err, 'Failed to load audit log');
     }
   });
 
@@ -1104,10 +1392,39 @@ async function bootstrap(): Promise<void> {
     });
   }
 
+  // Last-resort handler so a bad request body returns JSON instead of an HTML stack trace.
+  app.use((err: { status?: number; type?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    if (err.type === 'entity.too.large') {
+      res.status(413).json({ error: 'The request is too large.' });
+    } else if (err.type === 'entity.parse.failed') {
+      res.status(400).json({ error: 'The request body is not valid JSON.' });
+    } else {
+      console.error('[api] Unhandled error', err);
+      res.status(err.status && err.status >= 400 && err.status < 500 ? err.status : 500).json({ error: 'Request failed.' });
+    }
+  });
+
+  await purgeExpiredSessions();
+  const sessionSweep = setInterval(() => {
+    purgeExpiredSessions().catch((err) => console.error('[auth] Session cleanup failed:', err));
+  }, 60 * 60 * 1000);
+  sessionSweep.unref();
+
   const port = Number(process.env.PORT || 3000);
   server.listen(port, '0.0.0.0', () => {
     console.log(`[OncoBoard MDT] Server listening on http://0.0.0.0:${port} (SQL Engine: ${db.engine.toUpperCase()})`);
   });
+
+  // Hosts send SIGTERM on redeploy: stop taking requests, then release the database cleanly.
+  const shutdown = (signal: string) => {
+    console.log(`[OncoBoard MDT] ${signal} received, shutting down.`);
+    server.close(() => {
+      db.close().finally(() => process.exit(0));
+    });
+    setTimeout(() => process.exit(0), 10_000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 bootstrap().catch((err) => {

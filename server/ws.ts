@@ -9,25 +9,47 @@ interface ClientMeta {
   member: PresenceMember;
 }
 
+// Cloudflare drops idle WebSockets after ~100 s, so ping well inside that window.
+const HEARTBEAT_MS = 30_000;
+
 class RealtimeBoardHub {
   private wss: WebSocketServer | null = null;
   private rooms = new Map<string, Set<ClientMeta>>();
   private presenterState = new Map<string, PresenterSyncState>();
+  private alive = new WeakSet<WebSocket>();
 
   public attach(server: Server): void {
-    this.wss = new WebSocketServer({ noServer: true });
+    // Clients only ever send small presenter-sync frames.
+    this.wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
 
-    server.on('upgrade', (req: IncomingMessage, socket, head) => {
+    const heartbeat = setInterval(() => {
+      for (const ws of this.wss?.clients ?? []) {
+        if (!this.alive.has(ws)) {
+          ws.terminate();
+          continue;
+        }
+        this.alive.delete(ws);
+        ws.ping();
+      }
+    }, HEARTBEAT_MS);
+    heartbeat.unref();
+
+    server.on('upgrade', async (req: IncomingMessage, socket, head) => {
       const reqUrl = new URL(req.url ?? '/', `http://${req.headers.host || 'localhost'}`);
       if (reqUrl.pathname !== '/ws') {
         return;
       }
 
       const token = reqUrl.searchParams.get('token');
-      const roomId = reqUrl.searchParams.get('room') || 'global';
-      const session = getSession(token);
+      const roomId = (reqUrl.searchParams.get('room') || 'global').slice(0, 96);
+      let session: Awaited<ReturnType<typeof getSession>> = null;
+      try {
+        session = await getSession(token);
+      } catch (err) {
+        console.error('[ws] Session lookup failed:', err);
+      }
 
-      if (!session) {
+      if (!session || socket.destroyed) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;
@@ -35,9 +57,9 @@ class RealtimeBoardHub {
 
       this.wss?.handleUpgrade(req, socket, head, (ws) => {
         this.registerClient(ws, roomId, {
-          clinicianId: session.clinician.id,
-          fullName: session.clinician.fullName,
-          specialty: session.clinician.specialty,
+          clinicianId: session!.clinician.id,
+          fullName: session!.clinician.fullName,
+          specialty: session!.clinician.specialty,
           joinedAt: new Date().toISOString(),
         });
       });
@@ -46,6 +68,13 @@ class RealtimeBoardHub {
 
   private registerClient(ws: WebSocket, roomId: string, member: PresenceMember): void {
     const client: ClientMeta = { ws, roomId, member };
+    this.alive.add(ws);
+    ws.on('pong', () => this.alive.add(ws));
+    // Without a listener an 'error' event (e.g. an oversized frame) is an uncaught exception that kills the process.
+    ws.on('error', (err) => {
+      console.warn('[ws] Client error:', err.message);
+      ws.terminate();
+    });
     if (!this.rooms.has(roomId)) {
       this.rooms.set(roomId, new Set());
     }

@@ -15,7 +15,7 @@ import { ToastProvider, useToast } from './components/ToastProvider';
 import { TopBar } from './components/TopBar';
 import type { CommandActionPayload } from './lib/commandSearch';
 import type { BoardColorKey } from './lib/organPalette';
-import { api, setAuthToken } from './services/api';
+import { api, setAuthToken, setSessionExpiredHandler } from './services/api';
 import type { Clinician, MdtMeeting, OrganBoard, PatientCase } from './types';
 
 function OncoBoardShell() {
@@ -27,6 +27,7 @@ function OncoBoardShell() {
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
 
   const [cases, setCases] = useState<PatientCase[]>([]);
+  const [archivedCases, setArchivedCases] = useState<PatientCase[]>([]);
   const [meetings, setMeetings] = useState<MdtMeeting[]>([]);
   const [clinicians, setClinicians] = useState<Clinician[]>([]);
   const [activeClinician, setActiveClinician] = useState<Clinician | null>(null);
@@ -59,13 +60,15 @@ function OncoBoardShell() {
 
   // Every read needs a session, so the workspace loads only after sign-in.
   const loadWorkspace = useCallback(async () => {
-    const [cliniciansRes, casesRes, meetingsRes] = await Promise.all([
+    const [cliniciansRes, casesRes, archivedRes, meetingsRes] = await Promise.all([
       api.getClinicians(),
       api.getCases(),
+      api.getArchivedCases(),
       api.getMeetings(),
     ]);
     setClinicians(cliniciansRes.clinicians);
     setCases(casesRes.cases);
+    setArchivedCases(archivedRes.cases);
     setMeetings(meetingsRes.meetings);
     const live = meetingsRes.meetings.find((m) => m.roomStatus === 'Live') ?? meetingsRes.meetings[0];
     if (live) setActiveMeetingId(live.id);
@@ -102,6 +105,32 @@ function OncoBoardShell() {
       mounted = false;
     };
   }, [loadWorkspace]);
+
+  // Drops every clinical record from memory and returns to the sign-in prompt.
+  const handleSignedOut = useCallback(() => {
+    setActiveClinician(null);
+    setTokenVersion(null);
+    setCases([]);
+    setArchivedCases([]);
+    setMeetings([]);
+    setClinicians([]);
+    setOpenCaseId(null);
+    setActiveMeetingId(null);
+    setActiveSection('registry');
+    setAuthModalOpen(true);
+  }, []);
+
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      handleSignedOut();
+      pushToast({
+        title: 'Session expired',
+        description: 'Sign in again to continue. Saved work is unaffected.',
+        variant: 'warning',
+      });
+    });
+    return () => setSessionExpiredHandler(null);
+  }, [handleSignedOut, pushToast]);
 
   const handleToggleTheme = useCallback(() => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -141,6 +170,22 @@ function OncoBoardShell() {
 
   const handleCaseUpdated = (updated: PatientCase) => {
     setCases((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+  };
+
+  const handleCaseArchived = (archived: PatientCase) => {
+    setCases((prev) => prev.filter((c) => c.id !== archived.id));
+    setArchivedCases((prev) => [archived, ...prev]);
+    setOpenCaseId(null);
+  };
+
+  const handleCaseRestored = (restored: PatientCase) => {
+    setArchivedCases((prev) => prev.filter((c) => c.id !== restored.id));
+    setCases((prev) => [restored, ...prev]);
+  };
+
+  const handleMeetingArchived = (meetingId: string) => {
+    setMeetings((prev) => prev.filter((m) => m.id !== meetingId));
+    setActiveMeetingId((prev) => (prev === meetingId ? null : prev));
   };
 
   const handleMeetingCreated = (created: MdtMeeting) => {
@@ -285,10 +330,13 @@ function OncoBoardShell() {
                   tokenVersion={tokenVersion}
                   onBack={() => setOpenCaseId(null)}
                   onCaseUpdated={handleCaseUpdated}
+                  onCaseArchived={handleCaseArchived}
                 />
               ) : activeSection === 'registry' ? (
                 <DashboardView
                   cases={cases}
+                  archivedCases={archivedCases}
+                  onCaseRestored={handleCaseRestored}
                   meetings={meetings}
                   selectedOrgan={selectedOrgan}
                   onSelectOrgan={setSelectedOrgan}
@@ -317,6 +365,7 @@ function OncoBoardShell() {
                   cases={cases}
                   onMeetingCreated={handleMeetingCreated}
                   onMeetingUpdated={handleMeetingUpdated}
+                  onMeetingArchived={handleMeetingArchived}
                   onEnterLiveRoom={handleEnterLiveMeeting}
                 />
               ) : activeSection === 'live-board' && activeMeeting ? (
@@ -349,6 +398,7 @@ function OncoBoardShell() {
         activeClinician={activeClinician}
         demoMode={authConfig.demoMode}
         registrationOpen={authConfig.registrationOpen}
+        onSignedOut={handleSignedOut}
         onAuthenticated={(clinician, token) => {
           const firstSignIn = !activeClinician;
           setActiveClinician(clinician);

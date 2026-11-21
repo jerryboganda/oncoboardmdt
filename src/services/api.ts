@@ -29,6 +29,16 @@ export function getAuthToken(): string | null {
   return authToken;
 }
 
+// Called once when the server stops recognising the session (expired or revoked).
+let onSessionExpired: (() => void) | null = null;
+
+export function setSessionExpiredHandler(handler: (() => void) | null): void {
+  onSessionExpired = handler;
+}
+
+// Sign-in style calls answer 401 for bad credentials, which is not an expired session.
+const CREDENTIAL_CALLS = /^\/api\/auth\/(login|register|demo-session|password)/;
+
 async function requestJson<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -40,6 +50,10 @@ async function requestJson<T>(url: string, options: RequestInit = {}): Promise<T
 
   const res = await fetch(url, { ...options, headers });
   const data = (await res.json().catch(() => ({}))) as { error?: string } & T;
+  if (res.status === 401 && authToken && !CREDENTIAL_CALLS.test(url)) {
+    authToken = null;
+    onSessionExpired?.();
+  }
   if (!res.ok) {
     throw new Error(data.error || `Request failed with status ${res.status}`);
   }
@@ -80,7 +94,25 @@ export const api = {
 
   logout: () => requestJson<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
 
+  changePassword: (currentPassword: string, newPassword: string) =>
+    requestJson<{ ok: boolean }>('/api/auth/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
   getCases: () => requestJson<{ cases: PatientCase[] }>('/api/cases'),
+
+  getArchivedCases: () => requestJson<{ cases: PatientCase[] }>('/api/cases?archived=1'),
+
+  archiveCase: (id: string) =>
+    requestJson<{ patientCase: PatientCase }>(`/api/cases/${encodeURIComponent(id)}/archive`, {
+      method: 'POST',
+    }),
+
+  restoreCase: (id: string) =>
+    requestJson<{ patientCase: PatientCase }>(`/api/cases/${encodeURIComponent(id)}/restore`, {
+      method: 'POST',
+    }),
 
   getCaseDetail: (id: string) =>
     requestJson<{
@@ -160,6 +192,11 @@ export const api = {
     }),
 
   getMeetings: () => requestJson<{ meetings: MdtMeeting[] }>('/api/meetings'),
+
+  archiveMeeting: (id: string) =>
+    requestJson<{ meeting: MdtMeeting }>(`/api/meetings/${encodeURIComponent(id)}/archive`, {
+      method: 'POST',
+    }),
 
   createMeeting: (payload: {
     title: string;

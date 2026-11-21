@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
+  Archive,
   ArrowLeft,
   CheckCircle2,
   Download,
@@ -9,6 +10,7 @@ import {
   MessageSquare,
   Scan,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { formatConsensusReportText } from '../lib/clinicalRules';
 import { getOrganBoardTheme } from '../lib/organPalette';
@@ -17,7 +19,7 @@ import type { CaseStatus, ConsensusVote, ImagingAnnotation, PatientCase } from '
 import { AiAssistPanel } from './AiAssistPanel';
 import { CaseChatPanel } from './CaseChatPanel';
 import { DicomViewer } from './DicomViewer';
-import { SlidingHighlight, VIEW_TRANSITION } from './MotionPrimitives';
+import { SlidingHighlight, SpringModal, VIEW_TRANSITION } from './MotionPrimitives';
 import { PathologyPanel } from './PathologyPanel';
 import { useToast } from './ToastProvider';
 
@@ -28,6 +30,7 @@ interface CaseDossierViewProps {
   tokenVersion: string | null;
   onBack: () => void;
   onCaseUpdated: (updated: PatientCase) => void;
+  onCaseArchived: (archived: PatientCase) => void;
 }
 
 export function CaseDossierView({
@@ -35,6 +38,7 @@ export function CaseDossierView({
   tokenVersion,
   onBack,
   onCaseUpdated,
+  onCaseArchived,
 }: CaseDossierViewProps) {
   const { pushToast } = useToast();
   const [activeTab, setActiveTab] = useState<DossierTab>('overview');
@@ -44,6 +48,9 @@ export function CaseDossierView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -83,6 +90,25 @@ export function CaseDossierView({
       });
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!patientCase) return;
+    setArchiving(true);
+    setArchiveError(null);
+    try {
+      const { patientCase: archived } = await api.archiveCase(patientCase.id);
+      pushToast({
+        title: `Archived ${archived.mrn}`,
+        description: 'Hidden from the registry. Restore it with the Archived status filter.',
+        variant: 'info',
+        organBoard: archived.organBoard,
+      });
+      onCaseArchived(archived);
+    } catch (err) {
+      setArchiveError(err instanceof Error ? err.message : 'Unable to archive this case.');
+      setArchiving(false);
     }
   };
 
@@ -203,6 +229,18 @@ export function CaseDossierView({
               >
                 <Download className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Export EHR Report</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  setArchiveError(null);
+                  setArchiveOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 whitespace-nowrap transition-colors"
+              >
+                <Archive className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Archive Case</span>
               </motion.button>
             </div>
           </div>
@@ -435,6 +473,63 @@ export function CaseDossierView({
       {activeTab === 'ai' && <AiAssistPanel patientCase={patientCase} />}
         </motion.div>
       </AnimatePresence>
+
+      <SpringModal
+        open={archiveOpen}
+        onClose={() => !archiving && setArchiveOpen(false)}
+        labelledBy="archive-case-title"
+        maxWidthClass="max-w-md"
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-hairline">
+          <div>
+            <h2 id="archive-case-title" className="font-display text-base font-semibold text-ink">
+              Archive {patientCase.mrn}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Reversible. Nothing is deleted.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(false)}
+            disabled={archiving}
+            aria-label="Close archive dialog"
+            className="p-1.5 rounded text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {archiveError && (
+            <div role="alert" className="p-3 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300">
+              {archiveError}
+            </div>
+          )}
+          <p className="text-xs leading-relaxed text-ink-muted">
+            The case leaves the Case Registry and can no longer receive votes, annotations or edits.
+            Its record and audit trail stay in the database, and the lead clinician or a board chair can
+            restore it from the Archived status filter.
+          </p>
+          <div className="flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={() => setArchiveOpen(false)}
+              disabled={archiving}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleArchive}
+              disabled={archiving}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-700 hover:bg-blue-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 text-xs font-semibold transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              {archiving ? 'Archiving...' : 'Archive Case'}
+            </button>
+          </div>
+        </div>
+      </SpringModal>
     </div>
   );
 }

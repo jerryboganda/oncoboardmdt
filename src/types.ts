@@ -129,6 +129,7 @@ export interface PatientCase {
   dicomPreset: DicomPresetKey;
   baselineSumMm: number;
   consensus: ConsensusPlan | null;
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -169,6 +170,7 @@ export interface MdtMeeting {
   roomStatus: 'Scheduled' | 'Live' | 'Completed';
   agenda: AgendaItem[];
   activeCaseId: string | null;
+  archivedAt?: string | null;
   createdAt: string;
 }
 

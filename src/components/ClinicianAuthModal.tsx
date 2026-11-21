@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { LogOut, X } from 'lucide-react';
 import { api, setAuthToken } from '../services/api';
 import type { Clinician, SpecialtyRole } from '../types';
 import { SlidingHighlight, SpringModal } from './MotionPrimitives';
@@ -13,6 +13,7 @@ interface ClinicianAuthModalProps {
   demoMode: boolean;
   registrationOpen: boolean;
   onAuthenticated: (clinician: Clinician, token: string) => void;
+  onSignedOut: () => void;
 }
 
 const SPECIALTIES: SpecialtyRole[] = [
@@ -32,11 +33,14 @@ export function ClinicianAuthModal({
   demoMode,
   registrationOpen,
   onAuthenticated,
+  onSignedOut,
 }: ClinicianAuthModalProps) {
   const { pushToast } = useToast();
-  const [mode, setMode] = useState<'switch' | 'login' | 'register'>('switch');
+  const [mode, setMode] = useState<'switch' | 'login' | 'register' | 'account'>('switch');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [specialty, setSpecialty] = useState<SpecialtyRole>('Medical Oncology');
   const [title, setTitle] = useState('Attending Oncologist');
@@ -106,14 +110,60 @@ export function ClinicianAuthModal({
     }
   };
 
+  const handleChangePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await api.changePassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      pushToast({
+        title: 'Password changed',
+        description: 'Your other signed-in sessions have been ended.',
+        variant: 'success',
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Password change failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    try {
+      await api.logout();
+    } catch {
+      // The server session expires on its own; the local sign-out below still applies.
+    }
+    setAuthToken(null);
+    setCurrentPassword('');
+    setNewPassword('');
+    setPassword('');
+    setError(null);
+    setMode('login');
+    setLoading(false);
+    onSignedOut();
+    pushToast({
+      title: 'Signed out',
+      description: 'Clinical data is no longer loaded in this browser tab.',
+      variant: 'info',
+    });
+  };
+
+  const canManageAccount = Boolean(activeClinician) && !demoMode;
   const tabs = (
     [
+      ['account', 'My Account'],
       ['switch', 'Switch MDT Specialist'],
       ['login', 'Password Sign-In'],
       ['register', 'Register Clinician'],
     ] as const
-  ).filter(([id]) => (id === 'switch' ? demoMode : id === 'register' ? registrationOpen : true));
-  const view = tabs.some(([id]) => id === mode) ? mode : 'login';
+  ).filter(([id]) =>
+    id === 'account' ? canManageAccount : id === 'switch' ? demoMode : id === 'register' ? registrationOpen : true,
+  );
+  const view = tabs.some(([id]) => id === mode) ? mode : canManageAccount ? 'account' : 'login';
 
   return (
     <SpringModal open={open} onClose={onClose} labelledBy="auth-modal-title" maxWidthClass="max-w-lg">
@@ -150,7 +200,7 @@ export function ClinicianAuthModal({
                   key={id}
                   type="button"
                   onClick={() => {
-                    setMode(id as 'switch' | 'login' | 'register');
+                    setMode(id);
                     setError(null);
                   }}
                   className={`relative flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
@@ -208,6 +258,66 @@ export function ClinicianAuthModal({
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {view === 'account' && activeClinician && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-ink">{activeClinician.fullName}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {activeClinician.specialty} · {activeClinician.title}
+                </p>
+              </div>
+              <form onSubmit={handleChangePassword} className="space-y-3 border-t border-hairline pt-4">
+                <div>
+                  <label htmlFor="acct-current-pass" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Current Password
+                  </label>
+                  <input
+                    id="acct-current-pass"
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-ink"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="acct-new-pass" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    New Password (min 8 characters)
+                  </label>
+                  <input
+                    id="acct-new-pass"
+                    type="password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-ink"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 rounded-md bg-blue-700 hover:bg-blue-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 text-xs font-semibold disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Change Password'}
+                </button>
+              </form>
+              <div className="border-t border-hairline pt-4">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={handleSignOut}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap disabled:opacity-50"
+                >
+                  <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </div>
           )}
 

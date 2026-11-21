@@ -198,6 +198,43 @@ class UnifiedDatabase {
     for (const stmt of statements) {
       await this.execute(stmt);
     }
+
+    // Additive migrations only. SQLite and MySQL have no portable IF NOT EXISTS for these, so a
+    // "duplicate column / key name" error simply means the migration already ran.
+    const migrations = [
+      `CREATE TABLE IF NOT EXISTS sessions (
+        token_hash VARCHAR(64) PRIMARY KEY,
+        clinician_id VARCHAR(64) NOT NULL,
+        created_at VARCHAR(40) NOT NULL,
+        expires_at VARCHAR(40) NOT NULL
+      )`,
+      'ALTER TABLE patient_cases ADD COLUMN archived_at VARCHAR(40) NULL',
+      'ALTER TABLE mdt_meetings ADD COLUMN archived_at VARCHAR(40) NULL',
+      'CREATE INDEX idx_annot_case ON imaging_annotations (case_id)',
+      'CREATE INDEX idx_msg_room ON case_messages (room_id, created_at)',
+      'CREATE INDEX idx_audit_created ON audit_logs (created_at)',
+      'CREATE INDEX idx_sessions_expires ON sessions (expires_at)',
+      'CREATE INDEX idx_sessions_clinician ON sessions (clinician_id)',
+    ];
+    for (const stmt of migrations) {
+      try {
+        await this.execute(stmt);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (/duplicate|already exists/i.test(message)) continue;
+        // Indexes only speed things up, so a host that refuses them must not stop the app booting.
+        if (stmt.startsWith('CREATE INDEX')) {
+          console.warn(`[db] Skipped optional index (${stmt.slice(0, 40)}...): ${message}`);
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  public async close(): Promise<void> {
+    await this.mysqlPool?.end();
+    this.sqliteDb?.close();
   }
 
   private async seedIfEmpty(): Promise<void> {
@@ -1246,6 +1283,7 @@ export function mapCaseRow(row: Record<string, unknown>): PatientCase {
     dicomPreset: String(row.dicom_preset) as PatientCase['dicomPreset'],
     baselineSumMm: Number(row.baseline_sum_mm ?? 0),
     consensus: row.consensus_json ? (JSON.parse(String(row.consensus_json)) as ConsensusPlan) : null,
+    archivedAt: row.archived_at ? String(row.archived_at) : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -1282,6 +1320,7 @@ export function mapMeetingRow(row: Record<string, unknown>): MdtMeeting {
     roomStatus: String(row.room_status) as MdtMeeting['roomStatus'],
     agenda: JSON.parse(String(row.agenda_json || '[]')) as AgendaItem[],
     activeCaseId: row.active_case_id ? String(row.active_case_id) : null,
+    archivedAt: row.archived_at ? String(row.archived_at) : null,
     createdAt: String(row.created_at),
   };
 }

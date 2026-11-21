@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { CalendarPlus, Clock, Radio, Users } from 'lucide-react';
+import { Archive, CalendarPlus, Clock, Radio, Users, X } from 'lucide-react';
 import { getOrganBoardTheme } from '../lib/organPalette';
 import { api } from '../services/api';
 import type { MdtMeeting, OrganBoard, PatientCase } from '../types';
+import { SpringModal } from './MotionPrimitives';
 import { useToast } from './ToastProvider';
 
 interface MeetingsViewProps {
@@ -11,6 +12,7 @@ interface MeetingsViewProps {
   cases: PatientCase[];
   onMeetingCreated: (meeting: MdtMeeting) => void;
   onMeetingUpdated: (meeting: MdtMeeting) => void;
+  onMeetingArchived: (meetingId: string) => void;
   onEnterLiveRoom: (meetingId: string) => void;
 }
 
@@ -19,9 +21,13 @@ export function MeetingsView({
   cases,
   onMeetingCreated,
   onMeetingUpdated,
+  onMeetingArchived,
   onEnterLiveRoom,
 }: MeetingsViewProps) {
   const { pushToast } = useToast();
+  const [archiveTarget, setArchiveTarget] = useState<MdtMeeting | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [organBoard, setOrganBoard] = useState<OrganBoard | 'Multi-Organ'>('Multi-Organ');
   const [scheduledStart, setScheduledStart] = useState('2026-11-27T14:00');
@@ -66,6 +72,27 @@ export function MeetingsView({
       setError(err instanceof Error ? err.message : 'Unable to schedule meeting.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!archiveTarget) return;
+    setArchiving(true);
+    setArchiveError(null);
+    try {
+      const { meeting } = await api.archiveMeeting(archiveTarget.id);
+      onMeetingArchived(meeting.id);
+      pushToast({
+        title: 'Tumour Board archived',
+        description: `${meeting.title} was removed from the schedule.`,
+        variant: 'info',
+        organBoard: meeting.organBoard,
+      });
+      setArchiveTarget(null);
+    } catch (err) {
+      setArchiveError(err instanceof Error ? err.message : 'Unable to archive this meeting.');
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -169,6 +196,20 @@ export function MeetingsView({
                       >
                         {m.roomStatus === 'Live' ? 'End Session' : 'Go Live'}
                       </motion.button>
+                      {m.roomStatus !== 'Live' && (
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => {
+                            setArchiveError(null);
+                            setArchiveTarget(m);
+                          }}
+                          aria-label={`Archive ${m.title}`}
+                          className="p-2 rounded-md border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <Archive className="h-3.5 w-3.5" aria-hidden="true" />
+                        </motion.button>
+                      )}
                       <motion.button
                         type="button"
                         whileTap={{ scale: 0.97 }}
@@ -358,6 +399,62 @@ export function MeetingsView({
           </div>
         </form>
       </div>
+
+      <SpringModal
+        open={archiveTarget !== null}
+        onClose={() => !archiving && setArchiveTarget(null)}
+        labelledBy="archive-meeting-title"
+        maxWidthClass="max-w-md"
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-hairline">
+          <div>
+            <h2 id="archive-meeting-title" className="font-display text-base font-semibold text-ink">
+              Archive Tumour Board
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Removes the session from the schedule.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setArchiveTarget(null)}
+            disabled={archiving}
+            aria-label="Close archive dialog"
+            className="p-1.5 rounded text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {archiveError && (
+            <div role="alert" className="p-3 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300">
+              {archiveError}
+            </div>
+          )}
+          <p className="text-xs leading-relaxed text-ink-muted">
+            {archiveTarget?.title} will no longer appear in the schedule or the Live Board Room. The record
+            and its audit trail stay in the database, and a board chair can have it restored.
+          </p>
+          <div className="flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={() => setArchiveTarget(null)}
+              disabled={archiving}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleArchive}
+              disabled={archiving}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-700 hover:bg-blue-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 text-xs font-semibold transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              {archiving ? 'Archiving...' : 'Archive Tumour Board'}
+            </button>
+          </div>
+        </div>
+      </SpringModal>
     </div>
   );
 }

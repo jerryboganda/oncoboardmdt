@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS patient_cases (
   dicom_preset VARCHAR(48) NOT NULL,
   baseline_sum_mm DOUBLE NOT NULL DEFAULT 0,
   consensus_json MEDIUMTEXT NULL,
+  archived_at VARCHAR(40) NULL,
   created_at VARCHAR(40) NOT NULL,
   updated_at VARCHAR(40) NOT NULL,
   INDEX idx_cases_board (organ_board),
@@ -73,6 +74,7 @@ CREATE TABLE IF NOT EXISTS mdt_meetings (
   room_status VARCHAR(24) NOT NULL,
   agenda_json MEDIUMTEXT NOT NULL,
   active_case_id VARCHAR(64) NULL,
+  archived_at VARCHAR(40) NULL,
   created_at VARCHAR(40) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -100,7 +102,7 @@ CREATE TABLE IF NOT EXISTS case_messages (
   tag VARCHAR(48) NOT NULL,
   body TEXT NOT NULL,
   created_at VARCHAR(40) NOT NULL,
-  INDEX idx_msg_room (room_id)
+  INDEX idx_msg_room (room_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS audit_logs (
@@ -114,4 +116,14 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   detail TEXT NOT NULL,
   created_at VARCHAR(40) NOT NULL,
   INDEX idx_audit_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Sign-in sessions (SHA-256 of the bearer token, never the token itself).
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash VARCHAR(64) PRIMARY KEY,
+  clinician_id VARCHAR(64) NOT NULL,
+  created_at VARCHAR(40) NOT NULL,
+  expires_at VARCHAR(40) NOT NULL,
+  INDEX idx_sessions_expires (expires_at),
+  INDEX idx_sessions_clinician (clinician_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

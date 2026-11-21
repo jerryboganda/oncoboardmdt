@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Calendar, ChevronRight, Radio, Search } from 'lucide-react';
+import { ArchiveRestore, ArrowRight, Calendar, ChevronRight, Radio, Search } from 'lucide-react';
 import { filterPatientCases } from '../lib/clinicalRules';
 import { getOrganBoardTheme } from '../lib/organPalette';
+import { api } from '../services/api';
 import type { CaseStatus, CaseUrgency, MdtMeeting, OrganBoard, PatientCase } from '../types';
 import { AnimatedNumber, SlidingHighlight } from './MotionPrimitives';
+import { useToast } from './ToastProvider';
 
 interface DashboardViewProps {
   cases: PatientCase[];
+  archivedCases: PatientCase[];
+  onCaseRestored: (restored: PatientCase) => void;
   meetings: MdtMeeting[];
   selectedOrgan: OrganBoard | 'All';
   onSelectOrgan: (board: OrganBoard | 'All') => void;
@@ -45,6 +49,8 @@ function statusColor(status: CaseStatus): string {
 
 export function DashboardView({
   cases,
+  archivedCases,
+  onCaseRestored,
   meetings,
   selectedOrgan,
   onSelectOrgan,
@@ -55,18 +61,41 @@ export function DashboardView({
 }: DashboardViewProps) {
   const [search, setSearch] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState<CaseUrgency | 'All'>('All');
-  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'All'>('All');
+  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'All' | 'Archived'>('All');
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const { pushToast } = useToast();
+  const showArchived = statusFilter === 'Archived';
 
   const filteredCases = useMemo(
     () =>
-      filterPatientCases(cases, {
+      filterPatientCases(showArchived ? archivedCases : cases, {
         search,
         organBoard: selectedOrgan,
         urgency: urgencyFilter,
-        status: statusFilter,
+        status: showArchived ? 'All' : statusFilter,
       }),
-    [cases, search, selectedOrgan, urgencyFilter, statusFilter],
+    [cases, archivedCases, showArchived, search, selectedOrgan, urgencyFilter, statusFilter],
   );
+
+  const handleRestore = async (c: PatientCase) => {
+    setRestoringId(c.id);
+    setRestoreError(null);
+    try {
+      const { patientCase } = await api.restoreCase(c.id);
+      pushToast({
+        title: `Restored ${patientCase.mrn}`,
+        description: 'The case is back in the Case Registry.',
+        variant: 'success',
+        organBoard: patientCase.organBoard,
+      });
+      onCaseRestored(patientCase);
+    } catch (err) {
+      setRestoreError(err instanceof Error ? err.message : 'Unable to restore this case.');
+    } finally {
+      setRestoringId(null);
+    }
+  };
 
   const metrics = useMemo(() => {
     const scoped = selectedOrgan === 'All' ? cases : cases.filter((c) => c.organBoard === selectedOrgan);
@@ -279,7 +308,10 @@ export function DashboardView({
             <select
               id="status-filter"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as CaseStatus | 'All')}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as CaseStatus | 'All' | 'Archived');
+                setRestoreError(null);
+              }}
               className="px-3 py-2 rounded-md text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
             >
               <option value="All">All Statuses</option>
@@ -287,9 +319,18 @@ export function DashboardView({
               <option value="Scheduled">Scheduled</option>
               <option value="In Review">In Review</option>
               <option value="Consensus Reached">Consensus Reached</option>
+              <option value="Archived">Archived</option>
             </select>
           </div>
         </div>
+
+        {restoreError && (
+          <div className="p-4 border-b border-hairline">
+            <div role="alert" className="p-3 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300">
+              {restoreError}
+            </div>
+          </div>
+        )}
 
         {/* High-Density Clinical Case Table */}
         <div className="overflow-x-auto">
@@ -334,10 +375,14 @@ export function DashboardView({
                 <tr>
                   <td colSpan={7} className="py-12 px-6 text-center">
                     <p className="text-sm font-medium text-ink">
-                      No patient cases match your current filter criteria.
+                      {showArchived
+                        ? 'No archived cases match your current filter criteria.'
+                        : 'No patient cases match your current filter criteria.'}
                     </p>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Reset filters or register a new oncology case for multidisciplinary review.
+                      {showArchived
+                        ? 'Archived cases appear here and can be restored by their lead clinician or a board chair.'
+                        : 'Reset filters or register a new oncology case for multidisciplinary review.'}
                     </p>
                     <div className="mt-4 flex items-center justify-center gap-3">
                       <button
@@ -389,13 +434,19 @@ export function DashboardView({
                         </div>
                       </td>
                       <td className="py-3 px-3 align-top max-w-[250px]">
-                        <button
-                          type="button"
-                          onClick={() => onOpenCase(c.id)}
-                          className="text-left text-xs font-medium text-ink hover:text-blue-700 dark:hover:text-sky-400 transition-colors line-clamp-1"
-                        >
-                          {c.primaryDiagnosis}
-                        </button>
+                        {showArchived ? (
+                          <span className="block text-xs font-medium text-ink line-clamp-1">
+                            {c.primaryDiagnosis}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onOpenCase(c.id)}
+                            className="text-left text-xs font-medium text-ink hover:text-blue-700 dark:hover:text-sky-400 transition-colors line-clamp-1"
+                          >
+                            {c.primaryDiagnosis}
+                          </button>
+                        )}
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                           <span className={`font-medium ${boardToken.textClass}`}>
                             {c.organBoard} Board
@@ -429,18 +480,31 @@ export function DashboardView({
                         <span className={`text-xs ${statusColor(c.status)}`}>{c.status}</span>
                       </td>
                       <td className="py-3 px-3 align-top text-right whitespace-nowrap">
-                        <motion.button
-                          type="button"
-                          whileTap={{ scale: 0.96 }}
-                          onClick={() => onOpenCase(c.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-blue-600 hover:text-blue-700 dark:hover:border-sky-400 dark:hover:text-sky-300 transition-colors whitespace-nowrap"
-                        >
-                          <span>Open Dossier</span>
-                          <ChevronRight
-                            className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform duration-150"
-                            aria-hidden="true"
-                          />
-                        </motion.button>
+                        {showArchived ? (
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.96 }}
+                            disabled={restoringId === c.id}
+                            onClick={() => handleRestore(c)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-blue-600 hover:text-blue-700 dark:hover:border-sky-400 dark:hover:text-sky-300 transition-colors whitespace-nowrap disabled:opacity-50"
+                          >
+                            <ArchiveRestore className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                            <span>{restoringId === c.id ? 'Restoring...' : 'Restore Case'}</span>
+                          </motion.button>
+                        ) : (
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => onOpenCase(c.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-blue-600 hover:text-blue-700 dark:hover:border-sky-400 dark:hover:text-sky-300 transition-colors whitespace-nowrap"
+                          >
+                            <span>Open Dossier</span>
+                            <ChevronRight
+                              className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform duration-150"
+                              aria-hidden="true"
+                            />
+                          </motion.button>
+                        )}
                       </td>
                     </motion.tr>
                   );

@@ -87,6 +87,9 @@ if(!RM&&FINE)$$('.mag').forEach(b=>{b.addEventListener('pointermove',e=>{const r
 /* ---------- motion (page is complete and static without GSAP) ---------- */
 if(G){
  gsap.registerPlugin(ScrollTrigger);
+ // Default lag smoothing counts any frame gap over 500 ms as 33 ms, so throttled tabs (background,
+ // power saving) would crawl and keep content hidden; follow real time so reveals always finish on schedule.
+ gsap.ticker.lagSmoothing(0);
  document.fonts&&document.fonts.ready.then(()=>ScrollTrigger.refresh());
  const ph=$('.phero');
  if(ph){const t=gsap.timeline({defaults:{ease:'expo.out'}});
@@ -95,7 +98,7 @@ if(G){
    .fromTo('.phero .plede,.phero .cta-row,.phero .pstats',{y:22,opacity:0},{y:0,opacity:1,duration:1,stagger:.1},.45)
    .fromTo('.phero .spectrum',{scaleX:0},{scaleX:1,duration:1.4,ease:'expo.inOut'},.5)}
  // fromTo with explicit end values: a re-fired reveal can never strand an element at opacity 0
- $$('.h2,.h3big').forEach(t=>gsap.fromTo(t,{y:60,opacity:0},{y:0,opacity:1,duration:1.1,ease:'expo.out',scrollTrigger:{trigger:t,start:'top 90%',once:true}}));
+ $$('.h2,.h3big').forEach(t=>gsap.fromTo(t,{y:60,opacity:0},{y:0,opacity:1,duration:1.1,ease:'expo.out',scrollTrigger:{trigger:t,start:'top 90%',once:true,toggleActions:'play complete complete complete'}}));
  ScrollTrigger.batch('.rv,.intro,.stat p,.tool,.guard>div,.ti,.faq-list details,.kpi,.chart,.card,.tier,.steps>div,.frow .mock,.specs,.checks',{start:'top 92%',once:true,onEnter:b=>gsap.fromTo(b,{y:30,opacity:0},{y:0,opacity:1,duration:.9,stagger:.07,ease:'power3.out',overwrite:true,clearProps:'transform'})});
  $$('.mesh .blob').forEach((b,i)=>gsap.to(b,{x:i%2?-140:140,y:i<2?90:-70,duration:8+i*1.5,repeat:-1,yoyo:true,ease:'sine.inOut'}));
  const wm=$('.wordmark');if(wm)gsap.fromTo(wm,{yPercent:40,opacity:0},{yPercent:0,opacity:.9,ease:'none',scrollTrigger:{trigger:wm,start:'top bottom',end:'bottom bottom',scrub:true}});

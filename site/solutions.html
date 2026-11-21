@@ -210,7 +210,7 @@
 const {$$,G,FINE}=OB;
 // board cards: rise in on scroll, tilt toward the pointer on desktop
 if(G){
- $$('.frow .bd').forEach(cd=>gsap.fromTo(cd,{y:50,rotate:2,opacity:0},{y:0,rotate:0,opacity:1,duration:1,ease:'expo.out',scrollTrigger:{trigger:cd,start:'top 88%',once:true}}));
+ $$('.frow .bd').forEach(cd=>gsap.fromTo(cd,{y:50,rotate:2,opacity:0},{y:0,rotate:0,opacity:1,duration:1,ease:'expo.out',scrollTrigger:{trigger:cd,start:'top 88%',once:true,toggleActions:'play complete complete complete'}}));
  if(FINE)$$('.frow .bd').forEach(cd=>{cd.addEventListener('pointermove',e=>{const r=cd.getBoundingClientRect();gsap.to(cd,{rotateY:(e.clientX-r.left-r.width/2)/r.width*6,rotateX:-(e.clientY-r.top-r.height/2)/r.height*6,transformPerspective:1000,duration:.5})});cd.addEventListener('pointerleave',()=>gsap.to(cd,{rotateX:0,rotateY:0,duration:.7,ease:'elastic.out(1,.5)'}))});
 }
 </script>

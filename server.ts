@@ -1484,7 +1484,8 @@ async function bootstrap(): Promise<void> {
       );
       res.json({ synthesis: result });
     } catch (err) {
-      res.status(502).json({
+      // 503, not 502: Cloudflare (in front of production) swaps origin 502/504 bodies for its own HTML page.
+      res.status(503).json({
         error: err instanceof Error ? err.message : 'AI clinical synthesis request failed.',
       });
     }
@@ -1522,7 +1523,7 @@ async function bootstrap(): Promise<void> {
       );
       res.json({ impression });
     } catch (err) {
-      res.status(502).json({
+      res.status(503).json({
         error: err instanceof Error ? err.message : 'AI DICOM impression request failed.',
       });
     }
@@ -1563,7 +1564,7 @@ async function bootstrap(): Promise<void> {
       );
       res.json({ minutes });
     } catch (err) {
-      res.status(502).json({
+      res.status(503).json({
         error: err instanceof Error ? err.message : 'AI consensus minutes drafting failed.',
       });
     }
@@ -1595,7 +1596,7 @@ async function bootstrap(): Promise<void> {
       const answer = await answerCaseQuestion(mapCaseRow(caseRow), annotations, question, history);
       res.json({ answer });
     } catch (err) {
-      res.status(502).json({
+      res.status(503).json({
         error: err instanceof Error ? err.message : 'AI copilot response failed.',
       });
     }

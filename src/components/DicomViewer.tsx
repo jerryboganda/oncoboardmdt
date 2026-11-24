@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type WheelEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   Columns2,
@@ -173,6 +173,7 @@ export function DicomViewer({
   const mainCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const priorCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const wheelAreaRef = useRef<HTMLDivElement | null>(null);
 
   // Ask the server what imaging this case holds, then pick the biggest series to show first.
   // Every clinician therefore sees the same stored series, and a reload keeps it.
@@ -440,13 +441,20 @@ export function DicomViewer({
     dragStartRef.current = null;
   };
 
-  const handleWheel = (e: WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 1 : -1;
-    setSliceIndex((prev) =>
-      Math.max(0, Math.min(activeVolume.slices.length - 1, prev + delta)),
-    );
-  };
+  // React attaches wheel handlers as passive, so preventDefault (stop the page scrolling while scrubbing)
+  // only works from a native non-passive listener.
+  useEffect(() => {
+    const el = wheelAreaRef.current;
+    if (!el) return;
+    const lastSlice = activeVolume.slices.length - 1;
+    const onWheel = (e: globalThis.WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 1 : -1;
+      setSliceIndex((prev) => Math.max(0, Math.min(lastSlice, prev + delta)));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [activeVolume.slices.length]);
 
   const handleDicomFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -570,6 +578,13 @@ export function DicomViewer({
         variant: 'success',
         organBoard: patientCase.organBoard,
       });
+    } catch (err) {
+      pushToast({
+        title: 'Measurement not saved',
+        description: err instanceof Error ? err.message : 'Unable to save this measurement.',
+        variant: 'warning',
+        organBoard: patientCase.organBoard,
+      });
     } finally {
       setSavingAnnot(false);
     }
@@ -588,7 +603,17 @@ export function DicomViewer({
   };
 
   const handleDeleteAnnotation = async (id: string) => {
-    await api.deleteAnnotation(id);
+    try {
+      await api.deleteAnnotation(id);
+    } catch (err) {
+      pushToast({
+        title: 'Measurement not removed',
+        description: err instanceof Error ? err.message : 'Unable to remove this measurement.',
+        variant: 'warning',
+        organBoard: patientCase.organBoard,
+      });
+      return;
+    }
     onAnnotationDeleted(id);
     pushToast({
       title: 'Measurement removed',
@@ -865,7 +890,7 @@ export function DicomViewer({
 
           {/* Canvas Container (Mouse Wheel Scrubbing) */}
           <div
-            onWheel={handleWheel}
+            ref={wheelAreaRef}
             className={`relative flex-1 min-h-[380px] ${compact ? 'h-[400px]' : 'h-[470px]'} bg-[#05070B] grid ${
               comparePrior ? 'grid-cols-2 divide-x divide-slate-800' : 'grid-cols-1'
             } select-none overflow-hidden`}

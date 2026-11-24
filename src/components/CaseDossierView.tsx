@@ -88,6 +88,13 @@ export function CaseDossierView({
         variant: 'info',
         organBoard: updated.organBoard,
       });
+    } catch (err) {
+      pushToast({
+        title: 'Status not updated',
+        description: err instanceof Error ? err.message : 'Unable to update this case.',
+        variant: 'warning',
+        organBoard: patientCase.organBoard,
+      });
     } finally {
       setUpdatingStatus(false);
     }

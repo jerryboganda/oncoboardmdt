@@ -108,7 +108,9 @@ export function DashboardView({
     return { urgentCount, consensusCount, pendingReview, actionableBiomarkers };
   }, [cases, selectedOrgan]);
 
-  const liveMeeting = meetings.find((m) => m.roomStatus === 'Live') ?? meetings[0] ?? null;
+  // Completed sessions are history, so only Live and Scheduled ones count as upcoming.
+  const upcomingMeetings = meetings.filter((m) => m.roomStatus !== 'Completed');
+  const liveMeeting = upcomingMeetings.find((m) => m.roomStatus === 'Live') ?? upcomingMeetings[0] ?? null;
   const liveBoardToken = liveMeeting ? getOrganBoardTheme(liveMeeting.organBoard) : null;
 
   return (
@@ -522,11 +524,11 @@ export function DashboardView({
             Upcoming Multidisciplinary Board Sessions
           </h3>
           <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
-            {meetings.length} sessions scheduled
+            {upcomingMeetings.length} {upcomingMeetings.length === 1 ? 'session' : 'sessions'} scheduled
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {meetings.slice(0, 3).map((m) => {
+          {upcomingMeetings.slice(0, 3).map((m) => {
             const token = getOrganBoardTheme(m.organBoard);
             return (
               <motion.div

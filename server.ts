@@ -531,6 +531,10 @@ async function bootstrap(): Promise<void> {
         res.status(400).json({ error: 'Age must be between 1 and 120.' });
         return;
       }
+      if (!Number.isInteger(ecog) || ecog < 0 || ecog > 4) {
+        res.status(400).json({ error: 'ECOG performance status must be a whole number from 0 to 4.' });
+        return;
+      }
       if (!VALID_BOARDS.has(organBoard) || !VALID_URGENCIES.has(urgency) || !VALID_SEX.has(sex)) {
         res.status(400).json({ error: 'Invalid organ board, urgency or sex classification.' });
         return;
@@ -601,7 +605,7 @@ async function bootstrap(): Promise<void> {
           tnmN,
           tnmM,
           stageGroup,
-          Math.max(0, Math.min(4, ecog)),
+          ecog,
           urgency,
           'Intake',
           req.clinician!.id,
@@ -651,10 +655,14 @@ async function bootstrap(): Promise<void> {
       const tnmT = req.body?.tnmT !== undefined ? String(req.body.tnmT).trim() : current.tnmT;
       const tnmN = req.body?.tnmN !== undefined ? String(req.body.tnmN).trim() : current.tnmN;
       const tnmM = req.body?.tnmM !== undefined ? String(req.body.tnmM).trim() : current.tnmM;
+      // Editing T, N or M without naming a stage group re-derives it, so the two can never disagree.
+      const tnmChanged = tnmT !== current.tnmT || tnmN !== current.tnmN || tnmM !== current.tnmM;
       const stageGroup =
         req.body?.stageGroup !== undefined
           ? String(req.body.stageGroup).trim()
-          : current.stageGroup;
+          : tnmChanged
+            ? deriveStageGroup(tnmT, tnmN, tnmM)
+            : current.stageGroup;
       const status =
         req.body?.status && VALID_STATUSES.has(req.body.status) ? req.body.status : current.status;
       const urgency =
@@ -864,14 +872,18 @@ async function bootstrap(): Promise<void> {
 
   app.delete('/api/annotations/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      await db.execute('DELETE FROM imaging_annotations WHERE id = ?', [req.params.id]);
-      await logAudit(
-        req.clinician!,
-        'ANNOTATION_DELETED',
-        'imaging_annotation',
-        req.params.id,
-        `Removed imaging measurement ${req.params.id}.`,
-      );
+      // Idempotent: deleting an already-removed measurement succeeds, but only a real removal is audited.
+      const found = await db.queryOne('SELECT id FROM imaging_annotations WHERE id = ?', [req.params.id]);
+      if (found) {
+        await db.execute('DELETE FROM imaging_annotations WHERE id = ?', [req.params.id]);
+        await logAudit(
+          req.clinician!,
+          'ANNOTATION_DELETED',
+          'imaging_annotation',
+          req.params.id,
+          `Removed imaging measurement ${req.params.id}.`,
+        );
+      }
       res.json({ ok: true });
     } catch (err) {
       fail(res, err, 'Failed to delete annotation');
@@ -1073,8 +1085,15 @@ async function bootstrap(): Promise<void> {
       const durationMinutes = Number(req.body?.durationMinutes ?? 60);
       const agendaCaseIds: string[] = Array.isArray(req.body?.caseIds) ? req.body.caseIds : [];
 
-      if (!title || !scheduledStart || title.length > 200 || scheduledStart.length > 40 || organBoard.length > 48) {
-        res.status(400).json({ error: 'Meeting title and scheduled start time are required (title up to 200 characters).' });
+      if (
+        !title ||
+        !scheduledStart ||
+        title.length > 200 ||
+        scheduledStart.length > 40 ||
+        organBoard.length > 48 ||
+        Number.isNaN(Date.parse(scheduledStart))
+      ) {
+        res.status(400).json({ error: 'Meeting title and a valid scheduled start date and time are required (title up to 200 characters).' });
         return;
       }
 
@@ -1600,6 +1619,14 @@ async function bootstrap(): Promise<void> {
         error: err instanceof Error ? err.message : 'AI copilot response failed.',
       });
     }
+  });
+
+  // Browsers ask for /favicon.ico on every visit and no page declares an icon; answer quietly instead of a 404 in the console.
+  app.get('/favicon.ico', (_req, res) => res.status(204).end());
+
+  // Unknown API paths must answer in JSON, not fall through to the site/SPA HTML.
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'API route not found.' });
   });
 
   // --- Mount Vite Dev Middleware or Production Static Bundle ---

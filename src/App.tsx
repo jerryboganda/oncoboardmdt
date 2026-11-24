@@ -201,7 +201,9 @@ function OncoBoardShell() {
   };
 
   const handleMeetingCreated = (created: MdtMeeting) => {
-    setMeetings((prev) => [...prev, created]);
+    setMeetings((prev) =>
+      [...prev, created].sort((a, b) => a.scheduledStart.localeCompare(b.scheduledStart)),
+    );
   };
 
   const handleMeetingUpdated = (updated: MdtMeeting) => {

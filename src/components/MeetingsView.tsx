@@ -36,7 +36,13 @@ export function MeetingsView({
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [organBoard, setOrganBoard] = useState<OrganBoard | 'Multi-Organ'>('Multi-Organ');
-  const [scheduledStart, setScheduledStart] = useState('2026-11-27T14:00');
+  // Tomorrow at 14:00 local time, in the format a datetime-local input expects.
+  const [scheduledStart, setScheduledStart] = useState(() => {
+    const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    d.setHours(14, 0, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [selectedCaseIds, setSelectedCaseIds] = useState<string[]>(() =>
     cases.slice(0, 2).map((c) => c.id),
@@ -123,7 +129,18 @@ export function MeetingsView({
 
   const handleToggleLive = async (meeting: MdtMeeting) => {
     const nextStatus = meeting.roomStatus === 'Live' ? 'Completed' : 'Live';
-    const { meeting: updated } = await api.updateMeeting(meeting.id, { roomStatus: nextStatus });
+    let updated: MdtMeeting;
+    try {
+      ({ meeting: updated } = await api.updateMeeting(meeting.id, { roomStatus: nextStatus }));
+    } catch (err) {
+      pushToast({
+        title: nextStatus === 'Live' ? 'Session not started' : 'Session not ended',
+        description: err instanceof Error ? err.message : 'Unable to change the session status.',
+        variant: 'warning',
+        organBoard: meeting.organBoard,
+      });
+      return;
+    }
     onMeetingUpdated(updated);
     pushToast({
       title: nextStatus === 'Live' ? 'Live Tumour Board started' : 'Tumour Board session completed',
@@ -207,7 +224,7 @@ export function MeetingsView({
                         </span>
                         <span className="inline-flex items-center gap-1 font-mono tabular-nums">
                           <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                          {m.durationMinutes} min · {m.agenda.length} cases
+                          {m.durationMinutes} min · {m.agenda.length} {m.agenda.length === 1 ? 'case' : 'cases'}
                         </span>
                       </div>
                     </div>
